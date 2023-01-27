@@ -1,0 +1,42 @@
+{
+  "name": "recs-backend",
+  "version": "1.0.0",
+  "description": "RECs marketplace backend",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "cross-env NODE_ENV=development ts-node-dev --exit-child --respawn src/main.ts",
+    "start": "ts-node src/main.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/polyphene/crowd-connect-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@prisma/client": "4.9.0",
+    "@types/node": "18.11.18",
+    "@typescript-eslint/eslint-plugin": "^5.49.0",
+    "@typescript-eslint/parser": "^5.49.0",
+    "cross-env": "7.0.3",
+    "eslint": "^8.32.0",
+    "lint-staged": "^13.1.0",
+    "prettier": "^2.8.3",
+    "prisma": "4.9.0",
+    "ts-node": "10.9.1",
+    "ts-node-dev": "2.0.0",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "@graphql-tools/schema": "^9.0.13",
+    "graphql": "^16.6.0",
+    "graphql-scalars": "^1.20.1",
+    "graphql-shield": "^7.6.5",
+    "graphql-yoga": "3.3.0"
+  },
+  "prisma": {
+    "seed": "ts-node --transpile-only ./prisma/seed.ts"
+  }
+}

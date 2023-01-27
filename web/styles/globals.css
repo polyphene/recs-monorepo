@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.Toastify__toast-theme--dark {
+  background: #0f172a!important;
+}

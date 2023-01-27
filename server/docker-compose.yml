@@ -1,0 +1,40 @@
+version: '3.9'
+services:
+  postgres:
+    image: postgres:15
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+  graphql-yoga-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    working_dir: /usr/local/apps/recs
+    command: bash -c "npx prisma migrate dev --name init && npm run dev"
+    volumes:
+      - ./src:/usr/local/apps/recs/src
+      - ./prisma:/usr/local/apps/recs/prisma
+    environment:
+      - PORT=4000
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/recs?schema=recs&connect_timeout=3000
+    ports:
+      # GraphQL GUI
+      - "4000:4000"
+      # Prisma GUI (to run with
+    depends_on:
+      postgres:
+        condition: service_healthy
+    links:
+      - postgres
+volumes:
+  db_data:
