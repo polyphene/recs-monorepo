@@ -7,6 +7,26 @@ export const getPortEnv = (): string => {
   return env;
 };
 
+export const getRecMarketplaceAddressEnv = (): string => {
+  const env = process.env.REC_MARKETPLACE_ADDRESS;
+  if (env === undefined) {
+    throw new Error('REC_MARKETPLACE_ADDRESS environment variable is not set');
+  }
+
+  return env;
+}
+
+export const getEthWssUriEnv = (): string => {
+  const env = process.env.ETH_WSS_URI;
+  if (env === undefined) {
+    throw new Error('ETH_WSS_URI environment variable is not set');
+  }
+
+  return env;
+}
+
 export const loadEnv = (): void => {
   getPortEnv();
+  getRecMarketplaceAddressEnv();
+  getEthWssUriEnv()
 };

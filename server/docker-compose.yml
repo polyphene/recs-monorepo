@@ -27,6 +27,8 @@ services:
       - PORT=4000
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/recs?schema=recs&connect_timeout=3000
+      - REC_MARKETPLACE_ADDRESS=0x70D3C4a36404586Fc80A087F29d91E34301b87f0
+      - ETH_WSS_URI=wss://ws-filecoin-hyperspace.chainstacklabs.com/rpc/v0
     ports:
       # GraphQL GUI
       - "4000:4000"

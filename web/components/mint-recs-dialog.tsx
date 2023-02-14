@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import {Button} from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -10,22 +10,43 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import {Input} from "@/components/ui/input"
+import {Label} from "@/components/ui/label"
 import {Plus} from "lucide-react";
-import useIsSSR from "@/lib/useIsSSR";
-import {useContract} from "wagmi";
+import {useContractWrite, usePrepareContractWrite} from "wagmi";
 import recMarketplace from "@/config/rec-marketplace";
+import {useState} from "react";
+import {toast} from "react-toastify";
+import {waitTx} from "@/lib/utils";
 
-export function DialogDemo() {
-  const isSSR = useIsSSR()
+export function MintRECs() {
+  const [open, setOpen] = useState(false);
+  const [cid, setCID] = useState("");
+  const [amount, setAmount] = useState(0);
 
-  const recContract = useContract(
-    recMarketplace
-  )
+  const {config} = usePrepareContractWrite(
+    {
+      ...recMarketplace,
+      functionName: 'mintAndAllocate',
+      args: [
+        cid,
+        amount,
+        [],
+        []
+      ]
+    }
+  );
+  const {writeAsync} = useContractWrite({
+    ...config, onSettled: (data, error) => {
+      if (!error) {
+        setCID("");
+        setOpen(false);
+      }
+    }
+  });
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="w-fit"><Plus className="mr-1"/>Mint RECs</Button>
       </DialogTrigger>
@@ -33,7 +54,7 @@ export function DialogDemo() {
         <DialogHeader>
           <DialogTitle>Mint RECs</DialogTitle>
           <DialogDescription>
-            Set for your RECS. Click save when you're done.
+            Set for your RECS. Click mint when you're done.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -41,7 +62,8 @@ export function DialogDemo() {
             <Label htmlFor="cid" className="text-right">
               CID
             </Label>
-            <Input id="cid" placeholder="CID" className="col-span-3" />
+            <Input id="cid" placeholder="CID" className="col-span-3" value={cid}
+                   onChange={e => setCID(e.target.value)}/>
           </div>
           <div className="flex flex-row-reverse">
             <p className="text-sm text-slate-500">The CID should refer to the RECs metadata.</p>
@@ -50,11 +72,18 @@ export function DialogDemo() {
             <Label htmlFor="amount" className="text-right">
               Amount
             </Label>
-            <Input id="amount" placeholder="Amount" type="number" className="col-span-3" />
+            <Input id="amount" placeholder="Amount" type="number" className="col-span-3"
+                   onChange={e => setAmount(Number(e.target.value))}/>
           </div>
         </div>
         <DialogFooter>
-          <Button >Mint</Button>
+          <Button disabled={!writeAsync && !cid && amount === 0} onClick={() => {
+            toast.promise(waitTx(writeAsync?.()), {
+              pending: 'Minting RECs',
+              success: 'RECs minted !',
+              error: 'Couldn\'t mint RECs'
+            });
+          }}>Mint</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
