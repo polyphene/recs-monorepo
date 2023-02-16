@@ -77,8 +77,9 @@ function MintedRecsTable() {
     functionName: 'nextId'
   });
 
-  if (isLoading) <p>Loading...</p>
-  if (isError) <p>Couldn't fetch next REC id</p>
+  if (isLoading) return <p>Loading...</p>
+  if (isError) return <p>Couldn't fetch next REC id</p>
+  if (nextId.toString() === "0") return <p>No RECs minted</p>
 
   return <table className="w-full">
     <thead>
@@ -192,8 +193,9 @@ function MyRecsTable({isRedeemer}) {
     functionName: 'nextId'
   });
 
-  if (isLoading) <p>Loading...</p>
-  if (isError) <p>Couldn't fetch next REC id</p>
+  if (isLoading) return <p>Loading...</p>
+  if (isError) return <p>Couldn't fetch next REC id</p>
+  if (nextId.toString() === "0" ) return <p>No RECs owned</p>
 
   return <table className="w-full">
     <thead>

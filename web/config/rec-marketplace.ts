@@ -564,6 +564,11 @@ export default {
           "internalType": "uint256[]",
           "name": "allocations",
           "type": "uint256[]"
+        },
+        {
+          "internalType": "bool[]",
+          "name": "allocationsRedeemed",
+          "type": "bool[]"
         }
       ],
       "name": "mintAndAllocate",
