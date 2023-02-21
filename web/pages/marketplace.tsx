@@ -3,8 +3,9 @@ import Head from "next/head"
 import {NoWallet} from "@/components/no-wallet";
 import {Layout} from "@/components/layout"
 import {useAccount} from "wagmi";
-import {Dashboard} from "@/components/dashboard";
 import useIsSSR from "@/lib/useIsSSR";
+import {Marketplace} from "@/components/marketplace";
+
 
 export default function IndexPage() {
   const {isConnected} = useAccount()
@@ -25,7 +26,7 @@ export default function IndexPage() {
         !isSSR && !isConnected && <NoWallet/>
       }
       {
-        !isSSR && isConnected && <Dashboard/>
+        !isSSR && isConnected && <Marketplace/>
       }
     </Layout>
   )

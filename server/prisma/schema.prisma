@@ -8,6 +8,13 @@ datasource db {
 }
 
 model Event {
-  id        Int @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+}
+
+model Metadata {
+  id        Int      @id @default(autoincrement())
+  cid       String
+  createdBy String
   createdAt DateTime @default(now())
 }

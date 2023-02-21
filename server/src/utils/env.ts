@@ -14,7 +14,7 @@ export const getRecMarketplaceAddressEnv = (): string => {
   }
 
   return env;
-}
+};
 
 export const getEthWssUriEnv = (): string => {
   const env = process.env.ETH_WSS_URI;
@@ -23,10 +23,10 @@ export const getEthWssUriEnv = (): string => {
   }
 
   return env;
-}
+};
 
 export const loadEnv = (): void => {
   getPortEnv();
   getRecMarketplaceAddressEnv();
-  getEthWssUriEnv()
+  getEthWssUriEnv();
 };
