@@ -13,6 +13,7 @@ import {
 import { WebSocketProvider } from '../utils/web3-socket-provider';
 import { handleMint, handleRedeem, handleTransfer } from './handle-rec';
 import { handleBuy, handleList } from './handle-marketplace';
+import { handleGrantRole, handleRevokeRole } from './handle-roles';
 
 export const startWorkers = () => {
   const recMarketplaceAddress = getRecMarketplaceAddressEnv();
@@ -115,7 +116,12 @@ export const startWorkers = () => {
     {
       topics: [utils.id(GRANT_ROLE_EVENT_ID)],
     },
-    (role: string, account: string, sender: string) => {
+    (role: string, account: string) => {
+      handleGrantRole(role, account).catch(() =>
+        console.log(
+          `could not handle grant role ${role} event for address: ${account}`,
+        ),
+      );
       return;
     },
   );
@@ -125,7 +131,12 @@ export const startWorkers = () => {
     {
       topics: [utils.id(REVOKE_ROLE_EVENT_ID)],
     },
-    (role: string, account: string, sender: string) => {
+    (role: string, account: string) => {
+      handleRevokeRole(role, account).catch(() =>
+        console.log(
+          `could not handle revoke role ${role} event for address: ${account}`,
+        ),
+      );
       return;
     },
   );

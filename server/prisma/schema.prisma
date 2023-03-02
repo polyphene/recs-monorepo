@@ -48,7 +48,7 @@ enum EventType {
 model AddressRoles {
   id         Int     @id @default(autoincrement())
   address    String  @unique
-  isAdmin    Boolean
-  isMinter   Boolean
-  isRedeemer Boolean
+  isAdmin    Boolean @default(false)
+  isMinter   Boolean @default(false)
+  isRedeemer Boolean @default(false)
 }
