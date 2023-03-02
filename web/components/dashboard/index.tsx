@@ -1,11 +1,10 @@
 import { useAccount, useContractReads } from 'wagmi';
 
 import recMarketplace from '@/config/rec-marketplace';
-import { store } from '@/lib/storage';
 import { MintedRecsTable } from '@/components/dashboard/minted-recs';
 import { MyRecsTable } from '@/components/dashboard/my-recs';
-import { MintRECs } from '@/components/mint-recs-dialog';
-import { Button } from '@/components/ui/button';
+import { PendingRecsTable } from '@/components/dashboard/pending-recs';
+import { ParseMetadata } from '@/components/parse-metadata-dialog';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -58,8 +57,6 @@ export function Dashboard() {
   )
     return <></>;
 
-  console.log(isRoleData);
-
   return (
     <section className="container grid items-center gap-6 pt-6 pb-8 md:py-10">
       <Tabs defaultValue="owner" className="h-full space-y-6">
@@ -102,12 +99,13 @@ export function Dashboard() {
               Minted RECs
             </p>
             <MintedRecsTable />
-            <div className="flex items-center pt-4">
+            <div className="flex items-center py-4">
               <p className="pr-6 text-xl text-slate-700 dark:text-slate-400">
                 Pending Mint
               </p>
-              <MintRECs />
+              <ParseMetadata />
             </div>
+            <PendingRecsTable />
           </TabsContent>
         </div>
       </Tabs>

@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "cross-env NODE_ENV=development ts-node-dev --exit-child --respawn src/main.ts",
-    "start": "ts-node src/main.ts"
+    "start": "ts-node src/main.ts",
+    "seed-roles": "ts-node src/scripts/seed-roles.ts"
   },
   "repository": {
     "type": "git",
@@ -31,12 +32,13 @@
   },
   "dependencies": {
     "@graphql-tools/schema": "^9.0.13",
-    "ethers": "^6.0.2",
+    "ethers": "^5.7.2",
     "graphql": "^16.6.0",
     "graphql-scalars": "^1.20.1",
     "graphql-shield": "^7.6.5",
     "graphql-yoga": "3.3.0",
-    "multiformats": "^9.9.0"
+    "multiformats": "^9.9.0",
+    "sturdy-websocket": "^0.2.1"
   },
   "prisma": {
     "seed": "ts-node --transpile-only ./prisma/seed.ts"

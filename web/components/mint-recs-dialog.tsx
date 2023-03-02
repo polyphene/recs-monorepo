@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, MousePointerClick, Wand2 } from 'lucide-react';
-import { useDropzone } from 'react-dropzone';
+import { toast } from 'react-toastify';
+import { useContractWrite, usePrepareContractWrite } from 'wagmi';
 
-import { parseCSV } from '@/lib/utils';
+import recMarketplace from '@/config/rec-marketplace';
+import { waitTx } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -15,6 +17,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 type Allocation = {
   address: string;
@@ -22,66 +26,175 @@ type Allocation = {
   redeem: boolean;
 };
 
-export function MintRECs() {
-  const { acceptedFiles, getRootProps, getInputProps } = useDropzone({
-    maxFiles: 1,
-  });
+export function MintRECs({ cid, volume }) {
   const [open, setOpen] = useState(false);
+  const [allocations, setAllocations] = useState<Allocation[]>([]);
+
+  const { config } = usePrepareContractWrite({
+    ...recMarketplace,
+    functionName: 'mintAndAllocate',
+    args: [
+      cid,
+      volume,
+      allocations.map((a) => a.address),
+      allocations.map((a) => a.amount),
+      allocations.map((a) => a.redeem),
+    ],
+  });
+  const { writeAsync } = useContractWrite({
+    ...config,
+    onSettled: (data, error) => {
+      if (!error) {
+        setOpen(false);
+      }
+    },
+  });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="w-fit">
-          <Wand2 className="mr-1" />
-          Parse Metadata
-        </Button>
+        <Button className="w-fit">Mint RECs</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Upload RECs Metadata</DialogTitle>
+          <DialogTitle>Mint</DialogTitle>
           <DialogDescription>
-            Upload RECs metadata to mint them later.
+            Set for your RECS. Click mint when you're done.
           </DialogDescription>
         </DialogHeader>
-        <div
-          {...getRootProps({ className: 'dropzone' })}
-          className="flex h-[300px] shrink-0 items-center justify-center rounded-md border border-dashed border-slate-200 dark:border-slate-700"
-        >
-          <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
-            <input {...getInputProps()} />
-            {acceptedFiles.length > 0 && (
-              <>
-                <Check />
-                <p className="mt-2 mb-4 text-sm font-medium">
-                  {acceptedFiles[0].name.substring(
-                    0,
-                    acceptedFiles[0].name.length - 4
-                  )}
-                </p>
-              </>
-            )}
-            {acceptedFiles.length === 0 && (
-              <>
-                <MousePointerClick />
-                <h3 className="mt-4 text-lg font-semibold text-slate-900 dark:text-slate-50">
-                  Upload your Metadata file
-                </h3>
-                <p className="mt-2 mb-4 text-sm text-slate-500 dark:text-slate-400">
-                  Upload your CSV file here!
-                </p>
-              </>
-            )}
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="cid" className="text-right">
+              CID
+            </Label>
+            <Input
+              id="cid"
+              placeholder="CID"
+              className="col-span-3"
+              disabled={true}
+              value={cid}
+            />
           </div>
+          <div className="flex flex-row-reverse">
+            <p className="text-sm text-slate-500">
+              The CID should refer to the RECs metadata.
+            </p>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="volume" className="text-right">
+              Volume
+            </Label>
+            <Input
+              id="volume"
+              placeholder="Volume"
+              type="number"
+              className="col-span-3"
+              disabled={true}
+              value={volume}
+            />
+          </div>
+          {allocations.length > 0 &&
+            allocations.map((e, i) => {
+              return (
+                <div className="mt-2 grid items-center gap-4">
+                  <div className="grid grid-cols-7 items-center gap-4">
+                    <Input
+                      id={`allocation-${i}`}
+                      placeholder={`Allocation ${i + 1}`}
+                      className="col-span-3"
+                      onChange={(e) =>
+                        setAllocations(
+                          allocations.map((a, j) => {
+                            if (j === i) {
+                              return {
+                                ...a,
+                                address: e.target.value,
+                              };
+                            } else {
+                              return a;
+                            }
+                          })
+                        )
+                      }
+                      value={allocations[i].address}
+                    />
+                    <Input
+                      id={`amount-${i}`}
+                      placeholder={`Amount ${i + 1}`}
+                      type="number"
+                      className="col-span-3"
+                      onChange={(e) =>
+                        setAllocations(
+                          allocations.map((a, j) => {
+                            if (j === i) {
+                              return {
+                                ...a,
+                                amount: Number(e.target.value),
+                              };
+                            } else {
+                              return a;
+                            }
+                          })
+                        )
+                      }
+                      value={allocations[i].amount}
+                    />
+                    <div className="flex flex-col-reverse items-center space-x-2">
+                      <Checkbox
+                        id={`redeem-${i}`}
+                        checked={allocations[i].redeem}
+                        onClick={(e) =>
+                          setAllocations(
+                            allocations.map((a, j) => {
+                              if (j === i) {
+                                return {
+                                  ...a,
+                                  redeem: !a.redeem,
+                                };
+                              } else {
+                                return a;
+                              }
+                            })
+                          )
+                        }
+                        className="mt-2"
+                      />
+                      <label
+                        htmlFor={`redeem-${i}`}
+                        className="text-sm text-slate-500 dark:text-slate-400"
+                      >
+                        Redeem
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
         </div>
         <DialogFooter>
           <Button
-            disabled={acceptedFiles.length === 0}
-            onClick={async () => {
-              console.log(acceptedFiles[0]);
-              console.log(await parseCSV(acceptedFiles[0]));
+            onClick={() => {
+              const tmpAllocations: Allocation[] = [
+                ...allocations,
+                { address: '', amount: 0, redeem: false },
+              ];
+              setAllocations(tmpAllocations);
+            }}
+            variant="subtle"
+          >
+            Add allocation
+          </Button>
+          <Button
+            disabled={!writeAsync && !cid && volume === 0}
+            onClick={() => {
+              toast.promise(waitTx(writeAsync?.()), {
+                pending: 'Minting RECs',
+                success: 'RECs minted !',
+                error: "Couldn't mint RECs",
+              });
             }}
           >
-            Parse
+            Mint
           </Button>
         </DialogFooter>
       </DialogContent>

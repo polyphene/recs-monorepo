@@ -12,3 +12,6 @@ prisma-status: ## Check migration status in container
 
 prisma-reset: ## Reset the migration in the container
 	docker compose exec graphql-yoga-server npx prisma migrate reset
+
+seed-roles: ## Seed roles table in database
+	docker compose exec graphql-yoga-server npm run seed-roles

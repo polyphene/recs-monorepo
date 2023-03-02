@@ -1,30 +1,41 @@
-import { NavItem } from "@/types/nav"
+import { NavItem } from '@/types/nav';
 
 interface SiteConfig {
-  name: string
-  mainNav: NavItem[]
+  name: string;
+  mainNav: NavItem[];
   links: {
-    github: string
-  }
+    github: string;
+  };
 }
 
 export const siteConfig: SiteConfig = {
-  name: "RECs App",
+  name: 'RECs App',
   mainNav: [
     {
-      title: "Dashboard",
-      href: "/",
+      title: 'Dashboard',
+      href: '/',
     },
     {
-      title: "Marketplace",
-      href: "/marketplace"
+      title: 'Marketplace',
+      href: '/marketplace',
     },
     {
-      title: "History",
-      href: "/history"
-    }
+      title: 'History',
+      href: '/history',
+    },
   ],
   links: {
-    github: "https://github.com/polyphene/recs-monorepo"
+    github: 'https://github.com/polyphene/recs-monorepo',
   },
-}
+};
+
+export const adminSiteConfig: SiteConfig = {
+  ...siteConfig,
+  mainNav: [
+    ...siteConfig.mainNav,
+    {
+      title: 'Administration',
+      href: '/admin',
+    },
+  ],
+};

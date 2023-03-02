@@ -398,6 +398,11 @@ export default {
           type: 'uint256',
         },
         {
+          internalType: 'address',
+          name: 'seller',
+          type: 'address',
+        },
+        {
           internalType: 'uint256',
           name: 'tokenAmount',
           type: 'uint256',
@@ -561,6 +566,11 @@ export default {
           internalType: 'uint256[]',
           name: 'allocations',
           type: 'uint256[]',
+        },
+        {
+          internalType: 'bool[]',
+          name: 'allocationsRedeemed',
+          type: 'bool[]',
         },
       ],
       name: 'mintAndAllocate',
@@ -840,7 +850,7 @@ export default {
           type: 'uint256',
         },
       ],
-      name: 'tokenListing',
+      name: 'tokenListings',
       outputs: [
         {
           components: [
@@ -860,9 +870,28 @@ export default {
               type: 'uint256',
             },
           ],
-          internalType: 'struct RECMarketPlace.TokenListing',
+          internalType: 'struct RECMarketPlace.TokenListing[]',
           name: '',
-          type: 'tuple',
+          type: 'tuple[]',
+        },
+      ],
+      stateMutability: 'view',
+      type: 'function',
+    },
+    {
+      inputs: [
+        {
+          internalType: 'uint256',
+          name: 'tokenId',
+          type: 'uint256',
+        },
+      ],
+      name: 'tokenSupplyListed',
+      outputs: [
+        {
+          internalType: 'uint256',
+          name: '',
+          type: 'uint256',
         },
       ],
       stateMutability: 'view',

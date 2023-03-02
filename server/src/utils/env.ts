@@ -25,8 +25,18 @@ export const getEthWssUriEnv = (): string => {
   return env;
 };
 
+export const getEthHttpUriEnv = (): string => {
+  const env = process.env.ETH_HTTP_URI;
+  if (env === undefined) {
+    throw new Error('ETH_HTTP_URI environment variable is not set');
+  }
+
+  return env;
+};
+
 export const loadEnv = (): void => {
   getPortEnv();
   getRecMarketplaceAddressEnv();
   getEthWssUriEnv();
+  getEthHttpUriEnv();
 };

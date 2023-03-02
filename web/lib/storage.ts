@@ -1,12 +1,15 @@
 import * as process from 'process';
+import { apolloClient } from '@/pages/_app';
 import { CarReader } from '@ipld/car';
 import { Block } from '@ipld/car/api';
 import * as cbor from '@ipld/dag-cbor';
 import { encode } from 'multiformats/block';
 import { sha256 } from 'multiformats/hashes/sha2';
-import { Web3Storage } from 'web3.storage';
+import { CIDString, Web3Storage } from 'web3.storage';
 
-export type Metadata = {
+import { ADD_METADATA, METADATA_BY_CREATOR } from '@/lib/graphql';
+
+export type ParsedMetadata = {
   contract_id: string;
   productType: string;
   label: string;
@@ -20,6 +23,22 @@ export type Metadata = {
   country: string;
   region: string;
   volume_MWh: number;
+};
+
+export type Metadata = {
+  contractId: string;
+  productType: string;
+  label: string;
+  energySources: string;
+  contractDate: string;
+  deliveryDate: string;
+  reportingStart: string;
+  reportingEnd: string;
+  sellerName: string;
+  sellerAddress: string;
+  country: string;
+  region: string;
+  volumeMWh: number;
 };
 
 export type MetadataUpload = {
@@ -59,7 +78,10 @@ const encodeMetadataCbor = async (
   return { root: linkedMetadataBlock, blocks: metadataBlocks };
 };
 
-export const store = async (broker: string, metadata: Metadata[]) => {
+export const store = async (
+  broker: string,
+  metadata: Metadata[]
+): Promise<CIDString> => {
   const encodedMetadata: EncodedMetadata[] = await Promise.all(
     metadata.map(async (m) => await encodeMetadataCbor(m))
   );
@@ -90,11 +112,24 @@ export const store = async (broker: string, metadata: Metadata[]) => {
     token: process.env.NEXT_PUBLIC_WEB3_STORAGE_KEY,
   });
 
-  console.log('🤖 Storing CBOR objects with CID links between them...');
   const cid = await client.putCar(car);
-  console.log('🎉 Stored linked data using dag-cbor. Root CID:', cid);
-  console.log(`💡 If you have ipfs installed, try: ipfs dag get ${cid}`);
-  console.log(
-    `🔗 You can also traverse the link by path: ipfs dag get ${cid}/contact\n`
-  );
+
+  // Upload information on our server
+  await apolloClient.mutate({
+    mutation: ADD_METADATA,
+    variables: {
+      input: {
+        metadata: encodedMetadata.map((m, i) => {
+          return { cid: m.root.cid.toString(), ...metadata[i] };
+        }),
+        broker,
+      },
+    },
+    refetchQueries: [
+      { query: METADATA_BY_CREATOR, variables: { broker } }, // DocumentNode object parsed with gql
+      'MetadataByCreator', // Query name
+    ],
+  });
+
+  return cid;
 };

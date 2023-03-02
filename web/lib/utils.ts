@@ -3,7 +3,7 @@ import { ClassValue, clsx } from 'clsx';
 import Papa from 'papaparse';
 import { twMerge } from 'tailwind-merge';
 
-import { Metadata } from '@/lib/storage';
+import { Metadata, ParsedMetadata } from '@/lib/storage';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -17,7 +17,7 @@ export const waitTx = async (
   return Boolean(txReceipt.status);
 };
 
-export const parseCSV = async (file: File): Promise<Metadata[]> => {
+export const parseCSV = async (file: File): Promise<ParsedMetadata[]> => {
   let rows = [];
   return new Promise((resolve) => {
     Papa.parse(file, {

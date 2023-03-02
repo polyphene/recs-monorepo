@@ -7,14 +7,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Event {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+model Metadata {
+  id             Int      @id @default(autoincrement())
+  cid            String   @unique
+  contractId     String
+  productType    String
+  label          String
+  energySources  String
+  contractDate   String
+  deliveryDate   String
+  reportingStart String
+  reportingEnd   String
+  sellerName     String
+  sellerAddress  String
+  country        String
+  region         String
+  volumeMWh      Int
+  createdBy      String
+  minted         Boolean
+  createdAt      DateTime @default(now())
 }
 
-model Metadata {
-  id        Int      @id @default(autoincrement())
-  cid       String
-  createdBy String
-  createdAt DateTime @default(now())
+model Event {
+  id        Int       @id @default(autoincrement())
+  // Store as string because uint256
+  tokenId   String
+  eventType EventType
+  data      Json
+  createdAt DateTime  @default(now())
+}
+
+enum EventType {
+  MINT
+  TRANSFER
+  LIST
+  BUY
+  REDEEM
+}
+
+model AddressRoles {
+  id         Int     @id @default(autoincrement())
+  address    String  @unique
+  isAdmin    Boolean
+  isMinter   Boolean
+  isRedeemer Boolean
 }

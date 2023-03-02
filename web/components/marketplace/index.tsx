@@ -1,8 +1,8 @@
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
-import {Separator} from "@/components/ui/separator";
+import { ListRecsTable } from '@/components/marketplace/list-recs';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function Marketplace() {
-
   return (
     <section className="container grid items-center gap-6 pt-6 pb-8 md:py-10">
       <Tabs defaultValue="buy" className="h-full space-y-6">
@@ -38,12 +38,10 @@ export function Marketplace() {
               </div>
             </div>
             <Separator className="my-4" />
+            <ListRecsTable />
           </TabsContent>
         </div>
       </Tabs>
     </section>
-  )
+  );
 }
-
-
-
