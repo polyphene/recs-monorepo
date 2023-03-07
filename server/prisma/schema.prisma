@@ -29,12 +29,13 @@ model Metadata {
 }
 
 model Event {
-  id        Int       @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   // Store as string because uint256
-  tokenId   String
-  eventType EventType
-  data      Json
-  createdAt DateTime  @default(now())
+  tokenId     String?
+  eventType   EventType
+  data        Json
+  blockHeight String
+  createdAt   DateTime  @default(now())
 }
 
 enum EventType {
@@ -43,12 +44,15 @@ enum EventType {
   LIST
   BUY
   REDEEM
+  GRANT_ROLE
+  REVOKE_ROLE
 }
 
 model AddressRoles {
-  id         Int     @id @default(autoincrement())
-  address    String  @unique
-  isAdmin    Boolean @default(false)
-  isMinter   Boolean @default(false)
-  isRedeemer Boolean @default(false)
+  id         Int      @id @default(autoincrement())
+  address    String   @unique
+  isAdmin    Boolean  @default(false)
+  isMinter   Boolean  @default(false)
+  isRedeemer Boolean  @default(false)
+  createdAt  DateTime @default(now())
 }

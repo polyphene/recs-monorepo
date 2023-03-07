@@ -1,19 +1,11 @@
 import { getEthWssUriEnv, getRecMarketplaceAddressEnv } from '../utils/env';
 import recMarketplace from '../config/rec-marketplace';
 import { constants } from 'ethers';
-import { Contract, utils, BigNumber } from 'ethers';
-import {
-  BUY_EVENT_ID,
-  GRANT_ROLE_EVENT_ID,
-  LIST_EVENT_ID,
-  REDEEM_EVENT_ID,
-  REVOKE_ROLE_EVENT_ID,
-  TRANSFER_EVENT_ID,
-} from '../utils/web3-utils';
-import { WebSocketProvider } from '../utils/web3-socket-provider';
+import { Contract, BigNumber } from 'ethers';
 import { handleMint, handleRedeem, handleTransfer } from './handle-rec';
 import { handleBuy, handleList } from './handle-marketplace';
 import { handleGrantRole, handleRevokeRole } from './handle-roles';
+import { WebSocketProvider } from '../utils/web3-socket-provider';
 
 export const startWorkers = () => {
   const recMarketplaceAddress = getRecMarketplaceAddressEnv();
@@ -27,9 +19,7 @@ export const startWorkers = () => {
 
   // Handle minting and transfer events
   contract.on(
-    {
-      topics: [utils.id(TRANSFER_EVENT_ID)],
-    },
+    contract.filters.TransferSingle(),
     (
       operator: string,
       from: string,
@@ -57,9 +47,7 @@ export const startWorkers = () => {
 
   // Handle list event
   contract.on(
-    {
-      topics: [utils.id(LIST_EVENT_ID)],
-    },
+    contract.filters.TokenListed(),
     (
       seller: string,
       tokenId: BigNumber,
@@ -77,9 +65,7 @@ export const startWorkers = () => {
 
   // Handle buy event
   contract.on(
-    {
-      topics: [utils.id(BUY_EVENT_ID)],
-    },
+    contract.filters.TokenBought(),
     (
       buyer: string,
       seller: string,
@@ -98,10 +84,9 @@ export const startWorkers = () => {
 
   // Handle redeem event
   contract.on(
-    {
-      topics: [utils.id(REDEEM_EVENT_ID)],
-    },
+    contract.filters.Redeem(),
     (owner: string, tokenId: BigNumber, amount: BigNumber) => {
+      console.log('aa');
       handleRedeem(owner, tokenId, amount).catch(() =>
         console.log(
           `could not handle redeem event for tokenId: ${tokenId.toString()}`,
@@ -113,11 +98,9 @@ export const startWorkers = () => {
 
   // Handle grant role event
   contract.on(
-    {
-      topics: [utils.id(GRANT_ROLE_EVENT_ID)],
-    },
-    (role: string, account: string) => {
-      handleGrantRole(role, account).catch(() =>
+    contract.filters.RoleGranted(),
+    (role: string, account: string, sender: string) => {
+      handleGrantRole(role, account, sender).catch(() =>
         console.log(
           `could not handle grant role ${role} event for address: ${account}`,
         ),
@@ -128,11 +111,9 @@ export const startWorkers = () => {
 
   // Handle revoke role event
   contract.on(
-    {
-      topics: [utils.id(REVOKE_ROLE_EVENT_ID)],
-    },
-    (role: string, account: string) => {
-      handleRevokeRole(role, account).catch(() =>
+    contract.filters.RoleRevoked(),
+    (role: string, account: string, sender: string) => {
+      handleRevokeRole(role, account, sender).catch(() =>
         console.log(
           `could not handle revoke role ${role} event for address: ${account}`,
         ),

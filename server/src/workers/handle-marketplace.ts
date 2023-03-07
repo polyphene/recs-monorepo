@@ -22,6 +22,7 @@ export const handleList = async (
           tokenAmount: tokenAmount.toString(),
           price: price.toString(),
         },
+        blockHeight: '0',
       },
     })
     .catch(() => {
@@ -54,6 +55,7 @@ export const handleBuy = async (
           tokenAmount: tokenAmount.toString(),
           price: price.toString(),
         },
+        blockHeight: '0',
       },
     })
     .catch(() => {

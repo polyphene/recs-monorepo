@@ -13,28 +13,6 @@ export const getRecMarketplaceContractInstance = () => {
   );
 };
 
-export const TRANSFER_EVENT_ID = utils.id(
-  'TransferSingle(address,address,address,uint256,uint256)',
-);
-
-export const LIST_EVENT_ID = utils.id(
-  'TokenListed(address,uint256,uint256,uint256)',
-);
-
-export const BUY_EVENT_ID = utils.id(
-  'TokenBought(address,address,uint256,uint256,uint256)',
-);
-
-export const REDEEM_EVENT_ID = utils.id('Redeem(address,uint256,uint256)');
-
-export const GRANT_ROLE_EVENT_ID = utils.id(
-  'RoleGranted(bytes32,address,address)',
-);
-
-export const REVOKE_ROLE_EVENT_ID = utils.id(
-  'RoleRevoked(bytes32,address,address)',
-);
-
 export let ADMIN_ROLE = '';
 export let REDEEMER_ROLE = '';
 export let MINTER_ROLE = '';

@@ -6,7 +6,7 @@ import { getPortEnv, loadEnv } from './utils/env';
 import { startWorkers } from './workers';
 
 function main() {
-  // Load environment variable to ensure that they are porperly set
+  // Load environment variable to ensure that they are properly set
   loadEnv();
 
   const yoga = createYoga({ schema, context: createContext, plugins: [] });

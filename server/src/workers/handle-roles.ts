@@ -1,7 +1,11 @@
 import { getRoleJsonKey } from '../utils/web3-utils';
-import { PrismaClient } from '@prisma/client';
+import { EventType, PrismaClient } from '@prisma/client';
 
-export const handleGrantRole = async (role: string, account: string) => {
+export const handleGrantRole = async (
+  role: string,
+  account: string,
+  sender: string,
+) => {
   const prisma = new PrismaClient();
 
   await prisma.addressRoles
@@ -24,28 +28,54 @@ export const handleGrantRole = async (role: string, account: string) => {
         )}' to true for address: ${account}`,
       );
     });
-};
 
-export const handleRevokeRole = async (role: string, account: string) => {
-  const prisma = new PrismaClient();
-
-  await prisma.addressRoles
-    .upsert({
-      where: {
-        address: account,
-      },
-      update: {
-        [getRoleJsonKey(role)]: false,
-      },
-      create: {
-        address: account,
+  await prisma.event
+    .create({
+      data: {
+        tokenId: null,
+        // Disabling eslint rule which poses problem at assignment (prisma issue here)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+        eventType: EventType.GRANT_ROLE,
+        data: {
+          role,
+          account,
+          sender,
+        },
+        blockHeight: '0',
       },
     })
     .catch(() => {
       console.log(
-        `could not upsert addressRoles '${getRoleJsonKey(
+        `could not create GRANT_ROLE ${role} event for account: ${account}`,
+      );
+    });
+};
+
+export const handleRevokeRole = async (
+  role: string,
+  account: string,
+  sender: string,
+) => {
+  const prisma = new PrismaClient();
+
+  await prisma.event
+    .create({
+      data: {
+        tokenId: null,
+        // Disabling eslint rule which poses problem at assignment (prisma issue here)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+        eventType: EventType.REVOKE_ROLE,
+        data: {
           role,
-        )}' to false for address: ${account}`,
+          account,
+          sender,
+        },
+        blockHeight: '0',
+      },
+    })
+    .catch(() => {
+      console.log(
+        `could not create GRANT_ROLE ${role} event for account: ${account}`,
       );
     });
 };

@@ -45,6 +45,7 @@ export const handleMint = async (
           id: id.toString(),
           value: value.toString(),
         },
+        blockHeight: '0',
       },
     })
     .catch(() => {
@@ -75,6 +76,7 @@ export const handleTransfer = async (
           id: id.toString(),
           value: value.toString(),
         },
+        blockHeight: '0',
       },
     })
     .catch(() => {
@@ -103,6 +105,7 @@ export const handleRedeem = async (
           tokenId: tokenId.toString(),
           amount: amount.toString(),
         },
+        blockHeight: '0',
       },
     })
     .catch(() => {

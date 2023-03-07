@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "EventType" AS ENUM ('MINT', 'TRANSFER', 'LIST', 'BUY', 'REDEEM');
+CREATE TYPE "EventType" AS ENUM ('MINT', 'TRANSFER', 'LIST', 'BUY', 'REDEEM', 'GRANT_ROLE', 'REVOKE_ROLE');
 
 -- CreateTable
 CREATE TABLE "Metadata" (
@@ -28,9 +28,10 @@ CREATE TABLE "Metadata" (
 -- CreateTable
 CREATE TABLE "Event" (
     "id" SERIAL NOT NULL,
-    "tokenId" TEXT NOT NULL,
+    "tokenId" TEXT,
     "eventType" "EventType" NOT NULL,
     "data" JSONB NOT NULL,
+    "blockHeight" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Event_pkey" PRIMARY KEY ("id")
@@ -40,9 +41,10 @@ CREATE TABLE "Event" (
 CREATE TABLE "AddressRoles" (
     "id" SERIAL NOT NULL,
     "address" TEXT NOT NULL,
-    "isAdmin" BOOLEAN NOT NULL,
-    "isMinter" BOOLEAN NOT NULL,
-    "isRedeemer" BOOLEAN NOT NULL,
+    "isAdmin" BOOLEAN NOT NULL DEFAULT false,
+    "isMinter" BOOLEAN NOT NULL DEFAULT false,
+    "isRedeemer" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "AddressRoles_pkey" PRIMARY KEY ("id")
 );

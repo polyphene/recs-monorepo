@@ -38,6 +38,31 @@ export default {
       inputs: [
         {
           indexed: true,
+          internalType: 'address',
+          name: 'owner',
+          type: 'address',
+        },
+        {
+          indexed: true,
+          internalType: 'uint256',
+          name: 'tokenId',
+          type: 'uint256',
+        },
+        {
+          indexed: true,
+          internalType: 'uint256',
+          name: 'amount',
+          type: 'uint256',
+        },
+      ],
+      name: 'Redeem',
+      type: 'event',
+    },
+    {
+      anonymous: false,
+      inputs: [
+        {
+          indexed: true,
           internalType: 'bytes32',
           name: 'role',
           type: 'bytes32',

@@ -58,11 +58,11 @@ function PendingRecsRow({
 
 export function PendingRecsTable() {
   const { address } = useAccount();
-  const { loading, error, data } = useQuery(METADATA_BY_CREATOR, {
+  const { loading, error, data, previousData } = useQuery(METADATA_BY_CREATOR, {
     variables: { broker: address },
     pollInterval: 500,
   });
-
+  console.log(loading, error, previousData, data);
   if (loading) return <p className="leading-7">Loading...</p>;
 
   if (error)

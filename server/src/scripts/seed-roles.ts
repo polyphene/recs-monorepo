@@ -1,6 +1,7 @@
 import { getEthHttpUriEnv, getRecMarketplaceAddressEnv } from '../utils/env';
 import { ethers } from 'ethers';
 import recMarketplaceConfig from '../config/rec-marketplace';
+import { getRecMarketplaceContractInstance } from '../utils/web3-utils';
 
 // This functions allows us to only keep a list of Role granted without duplicates.
 //
@@ -15,17 +16,10 @@ function uniq(events: ethers.Event[]) {
     return seen.hasOwnProperty(k) ? false : (seen[k] = true);
   });
 }
-const main = async () => {
-  const recMarketplaceAddress = getRecMarketplaceAddressEnv();
-  const ethProvider = ethers.getDefaultProvider(getEthHttpUriEnv());
-  console.log(getEthHttpUriEnv());
-  const recMarketplace = new ethers.Contract(
-    recMarketplaceAddress,
-    recMarketplaceConfig.abi,
-    ethProvider,
-  );
+const seedRoles = async (fromBlock: number) => {
+  const recMarketplace = getRecMarketplaceContractInstance();
 
-  const events = await recMarketplace.queryFilter('RoleGranted', 89916);
+  const events = await recMarketplace.queryFilter('RoleGranted', fromBlock);
   const eventsFiltered = uniq(events);
   eventsFiltered.forEach(e => {
     console.log(
@@ -44,5 +38,5 @@ const main = async () => {
     );
   });
 };
-
-main().then(console.log).catch(console.log);
+//89916
+seedRoles(89916).then(console.log).catch(console.log);
