@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useQuery } from '@apollo/client';
 import { ClipboardCopy } from 'lucide-react';
 import { useAccount } from 'wagmi';
@@ -58,11 +59,20 @@ function PendingRecsRow({
 
 export function PendingRecsTable() {
   const { address } = useAccount();
-  const { loading, error, data, previousData } = useQuery(METADATA_BY_CREATOR, {
-    variables: { broker: address },
-    pollInterval: 500,
-  });
-  console.log(loading, error, previousData, data);
+  const [isPolling, setIsPolling] = useState(false);
+  const { loading, error, data, previousData, startPolling, stopPolling } =
+    useQuery(METADATA_BY_CREATOR, {
+      variables: { broker: address },
+      fetchPolicy: 'cache-and-network',
+    });
+
+  useEffect(() => {
+    if (!isPolling && startPolling) {
+      startPolling(200);
+      setIsPolling(true);
+    }
+  }, [startPolling, isPolling]);
+
   if (loading) return <p className="leading-7">Loading...</p>;
 
   if (error)
@@ -74,7 +84,7 @@ export function PendingRecsTable() {
 
   if (data.metadataByCreator.length === 0)
     return <p className="leading-7">No RECs pending mint</p>;
-  console.log(data);
+
   return (
     <table className="w-full">
       <thead>
