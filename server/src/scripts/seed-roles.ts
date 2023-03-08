@@ -1,12 +1,8 @@
 import {
-  ADMIN_ROLE,
   AUDITOR_ROLE,
-  getCurrentBlockHeight,
   getRecMarketplaceContractInstance,
   getRoleJsonKey,
   initRoles,
-  MINTER_ROLE,
-  REDEEMER_ROLE,
 } from '../utils/web3-utils';
 import { isObjKey } from '../utils';
 import { EventType, PrismaClient } from '@prisma/client';
@@ -23,28 +19,36 @@ type AccountRolesDictionary = {
 const seedRoles = async (fromBlock: number) => {
   const recMarketplace = getRecMarketplaceContractInstance();
 
+  // Fetch RoleGranted events from the chain
   const roleGrantedEvents = await recMarketplace.queryFilter(
     recMarketplace.filters.RoleGranted(),
     fromBlock,
   );
   console.log(roleGrantedEvents.length);
+
+  // Fetch RoleRevoked events from the chain
   const roleRevokedEvents = await recMarketplace.queryFilter(
     recMarketplace.filters.RoleRevoked(),
     fromBlock,
   );
   console.log(roleRevokedEvents.length);
+
+  // Merging the events returned
   const events = [...roleGrantedEvents, ...roleRevokedEvents].sort(
     (a, b) => a.blockNumber + a.logIndex - b.blockNumber - b.logIndex,
   );
   console.log(events.length);
+
   events.forEach(e => {
     console.log(e.blockNumber, e.transactionHash, e.logIndex);
   });
   return;
+  // Init roles value based on on-chain data
   await initRoles();
 
   const prisma = new PrismaClient();
 
+  // Iterate over events, generate document in DB and the new AddressRoles state
   const accountRoles: AccountRolesDictionary = {};
   events.forEach(e => {
     console.log(
@@ -103,6 +107,7 @@ const seedRoles = async (fromBlock: number) => {
     accountRoles[account][getRoleJsonKey(role)] = e.event !== 'RoleRevoked';
   });
 
+  // For each AddressRole run upsert
   await Promise.all(
     Object.values(accountRoles).map(a =>
       prisma.addressRoles
