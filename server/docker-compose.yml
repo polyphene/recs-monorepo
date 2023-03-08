@@ -27,7 +27,7 @@ services:
       - PORT=4000
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/recs?schema=recs&connect_timeout=3000
-      - REC_MARKETPLACE_ADDRESS=0xe5c7a00E9548C0458D222579528D298FA3F6CfE0
+      - REC_MARKETPLACE_ADDRESS=0x9Ee6aC4161f2c8ee73B44772d6a8301BD6C93A9b
       - ETH_WSS_URI=wss://wss.hyperspace.node.glif.io/apigw/lotus/rpc/v1
       - ETH_HTTP_URI=https://api.hyperspace.node.glif.io/rpc/v1
     ports:

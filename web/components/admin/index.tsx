@@ -2,7 +2,7 @@ import { useRouter } from 'next/router';
 import { useAccount, useContractRead } from 'wagmi';
 
 import recMarketplace from '@/config/rec-marketplace';
-import { MyRecsTable } from '@/components/dashboard/my-recs';
+import { RolesTable } from '@/components/admin/roles';
 import { Separator } from '@/components/ui/separator';
 
 export const Admin = () => {
@@ -52,7 +52,7 @@ export const Admin = () => {
         </div>
       </div>
       <Separator className="my-4" />
-      <MyRecsTable isRedeemer={true} />
+      <RolesTable isRedeemer={true} />
     </section>
   );
 };

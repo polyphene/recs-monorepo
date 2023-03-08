@@ -1,5 +1,8 @@
 import { BigNumber } from 'ethers';
-import { getRecMarketplaceContractInstance } from '../utils/web3-utils';
+import {
+  getCurrentBlockHeight,
+  getRecMarketplaceContractInstance,
+} from '../utils/web3-utils';
 import { EventType, PrismaClient } from '@prisma/client';
 
 export const handleMint = async (
@@ -45,7 +48,7 @@ export const handleMint = async (
           id: id.toString(),
           value: value.toString(),
         },
-        blockHeight: '0',
+        blockHeight: (await getCurrentBlockHeight()).toString(),
       },
     })
     .catch(() => {
@@ -76,7 +79,7 @@ export const handleTransfer = async (
           id: id.toString(),
           value: value.toString(),
         },
-        blockHeight: '0',
+        blockHeight: (await getCurrentBlockHeight()).toString(),
       },
     })
     .catch(() => {
@@ -105,7 +108,7 @@ export const handleRedeem = async (
           tokenId: tokenId.toString(),
           amount: amount.toString(),
         },
-        blockHeight: '0',
+        blockHeight: (await getCurrentBlockHeight()).toString(),
       },
     })
     .catch(() => {

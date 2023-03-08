@@ -29,13 +29,13 @@ model Metadata {
 }
 
 model Event {
-  id          Int       @id @default(autoincrement())
+  id              Int       @id @default(autoincrement())
   // Store as string because uint256
-  tokenId     String?
-  eventType   EventType
-  data        Json
-  blockHeight String
-  createdAt   DateTime  @default(now())
+  tokenId         String?
+  eventType       EventType
+  data            Json
+  blockHeight     String
+  createdAt       DateTime  @default(now())
 }
 
 enum EventType {

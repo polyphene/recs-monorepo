@@ -1,5 +1,6 @@
 import { BigNumber } from 'ethers';
 import { EventType, PrismaClient } from '@prisma/client';
+import { getCurrentBlockHeight } from '../utils/web3-utils';
 
 export const handleList = async (
   seller: string,
@@ -22,7 +23,7 @@ export const handleList = async (
           tokenAmount: tokenAmount.toString(),
           price: price.toString(),
         },
-        blockHeight: '0',
+        blockHeight: (await getCurrentBlockHeight()).toString(),
       },
     })
     .catch(() => {
@@ -55,7 +56,7 @@ export const handleBuy = async (
           tokenAmount: tokenAmount.toString(),
           price: price.toString(),
         },
-        blockHeight: '0',
+        blockHeight: (await getCurrentBlockHeight()).toString(),
       },
     })
     .catch(() => {

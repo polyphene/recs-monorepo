@@ -1,5 +1,7 @@
-import { getRoleJsonKey } from '../utils/web3-utils';
+import { getCurrentBlockHeight, getRoleJsonKey } from '../utils/web3-utils';
 import { EventType, PrismaClient } from '@prisma/client';
+import { ethers } from 'ethers';
+import { keccak256 } from '@ethersproject/keccak256';
 
 export const handleGrantRole = async (
   role: string,
@@ -41,7 +43,7 @@ export const handleGrantRole = async (
           account,
           sender,
         },
-        blockHeight: '0',
+        blockHeight: (await getCurrentBlockHeight()).toString(),
       },
     })
     .catch(() => {
@@ -70,7 +72,7 @@ export const handleRevokeRole = async (
           account,
           sender,
         },
-        blockHeight: '0',
+        blockHeight: (await getCurrentBlockHeight()).toString(),
       },
     })
     .catch(() => {

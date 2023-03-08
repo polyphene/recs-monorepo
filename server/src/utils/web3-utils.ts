@@ -1,5 +1,5 @@
 import { getEthHttpUriEnv, getRecMarketplaceAddressEnv } from '../utils/env';
-import { ethers, utils } from 'ethers';
+import { ethers } from 'ethers';
 import recMarketplaceConfig from '../config/rec-marketplace';
 
 export const getRecMarketplaceContractInstance = () => {
@@ -13,9 +13,16 @@ export const getRecMarketplaceContractInstance = () => {
   );
 };
 
+export const getCurrentBlockHeight = () => {
+  const ethProvider = ethers.getDefaultProvider(getEthHttpUriEnv());
+
+  return ethProvider.getBlockNumber();
+};
+
 export let ADMIN_ROLE = '';
 export let REDEEMER_ROLE = '';
 export let MINTER_ROLE = '';
+export let AUDITOR_ROLE = '';
 
 export const getRoleJsonKey = (role: string) => {
   switch (role) {
@@ -31,8 +38,8 @@ export const getRoleJsonKey = (role: string) => {
 };
 
 // Initialize roles ids based on contract
-const initRoles = async () => {
-  if (ADMIN_ROLE || REDEEMER_ROLE || MINTER_ROLE) {
+export const initRoles = async () => {
+  if (ADMIN_ROLE || REDEEMER_ROLE || MINTER_ROLE || AUDITOR_ROLE) {
     throw new Error('calling initRoles function more than once');
   }
 
@@ -44,6 +51,6 @@ const initRoles = async () => {
   MINTER_ROLE = await recMarketplace.MINTER_ROLE();
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-call
   REDEEMER_ROLE = await recMarketplace.REDEEMER_ROLE();
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-call
+  AUDITOR_ROLE = await recMarketplace.AUDITOR_ROLE();
 };
-
-initRoles().catch(() => console.log('failed to initialize role ids'));

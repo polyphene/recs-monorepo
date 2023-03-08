@@ -86,7 +86,6 @@ export const startWorkers = () => {
   contract.on(
     contract.filters.Redeem(),
     (owner: string, tokenId: BigNumber, amount: BigNumber) => {
-      console.log('aa');
       handleRedeem(owner, tokenId, amount).catch(() =>
         console.log(
           `could not handle redeem event for tokenId: ${tokenId.toString()}`,
