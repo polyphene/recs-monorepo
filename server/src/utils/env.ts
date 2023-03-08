@@ -34,9 +34,19 @@ export const getEthHttpUriEnv = (): string => {
   return env;
 };
 
+export const getDeploymentBlockHeight = (): string => {
+  const env = process.env.DEPLOYMENT_BLOCK_HEIGHT;
+  if (env === undefined) {
+    throw new Error('DEPLOYMENT_BLOCK_HEIGHT environment variable is not set');
+  }
+
+  return env;
+};
+
 export const loadEnv = (): void => {
   getPortEnv();
   getRecMarketplaceAddressEnv();
   getEthWssUriEnv();
   getEthHttpUriEnv();
+  getDeploymentBlockHeight();
 };

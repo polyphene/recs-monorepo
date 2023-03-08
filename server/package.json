@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "cross-env NODE_ENV=development ts-node-dev --exit-child --respawn src/main.ts",
     "start": "ts-node src/main.ts",
-    "seed-roles": "ts-node src/scripts/seed-roles.ts"
+    "seed-roles": "ts-node src/seeds/seed-roles.ts"
   },
   "repository": {
     "type": "git",
