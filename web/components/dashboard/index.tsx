@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { useAccount, useContractReads } from 'wagmi';
 
 import recMarketplace from '@/config/rec-marketplace';
+import { MINTER_ROLE, REDEEMER_ROLE } from '@/lib/utils';
 import { MintedRecsTable } from '@/components/dashboard/minted-recs';
 import { MyRecsTable } from '@/components/dashboard/my-recs';
 import { PendingRecsTable } from '@/components/dashboard/pending-recs';
@@ -12,23 +14,6 @@ export function Dashboard() {
   const { address } = useAccount();
 
   const {
-    data: roleData,
-    isLoading: roleDataLoading,
-    isError: roleDataError,
-  } = useContractReads({
-    contracts: [
-      {
-        ...recMarketplace,
-        functionName: 'MINTER_ROLE',
-      },
-      {
-        ...recMarketplace,
-        functionName: 'REDEEMER_ROLE',
-      },
-    ],
-  });
-
-  const {
     data: isRoleData,
     isLoading: isRoleDataLoading,
     isError: isRoleDataError,
@@ -37,25 +22,17 @@ export function Dashboard() {
       {
         ...recMarketplace,
         functionName: 'hasRole',
-        args: [roleData?.[0], address],
+        args: [MINTER_ROLE, address],
       },
       {
         ...recMarketplace,
         functionName: 'hasRole',
-        args: [roleData?.[1], address],
+        args: [REDEEMER_ROLE, address],
       },
     ],
   });
 
-  if (
-    !isRoleData ||
-    !roleData ||
-    isRoleDataLoading ||
-    isRoleDataError ||
-    roleDataLoading ||
-    roleDataError
-  )
-    return <></>;
+  if (!isRoleData || isRoleDataLoading || isRoleDataError) return <></>;
 
   return (
     <section className="container grid items-center gap-6 pt-6 pb-8 md:py-10">

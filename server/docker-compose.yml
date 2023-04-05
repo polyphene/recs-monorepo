@@ -27,10 +27,10 @@ services:
       - PORT=4000
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/recs?schema=recs&connect_timeout=3000
-      - REC_MARKETPLACE_ADDRESS=0x9Ee6aC4161f2c8ee73B44772d6a8301BD6C93A9b
+      - REC_MARKETPLACE_ADDRESS=0x5E9536539aE536C242026d2d9E38E188C3BA1CCa
       - ETH_WSS_URI=wss://wss.hyperspace.node.glif.io/apigw/lotus/rpc/v1
-      - ETH_HTTP_URI=https://rpc.ankr.com/filecoin_testnet
-      - DEPLOYMENT_BLOCK_HEIGHT=147041
+      - ETH_HTTP_URI=https://api.hyperspace.node.glif.io/rpc/v1
+      - DEPLOYMENT_BLOCK_HEIGHT=210685
     ports:
       # GraphQL GUI
       - "4000:4000"

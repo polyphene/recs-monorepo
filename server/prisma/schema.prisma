@@ -35,6 +35,8 @@ model Event {
   eventType       EventType
   data            Json
   blockHeight     String
+  transactionHash String
+  logIndex        Int
   createdAt       DateTime  @default(now())
 }
 

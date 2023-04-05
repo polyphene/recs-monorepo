@@ -37,3 +37,14 @@ export const METADATA_BY_CID = gql`
     }
   }
 `;
+
+export const ROLES = gql`
+  query Roles {
+    roles {
+      address
+      isMinter
+      isAdmin
+      isRedeemer
+    }
+  }
+`;

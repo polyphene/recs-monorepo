@@ -12,7 +12,16 @@ export const handleMint = async (
   id: BigNumber,
   value: BigNumber,
 ) => {
+  // Get event metadata
+  const blockHeight = await getCurrentBlockHeight();
   const recMarketplace = getRecMarketplaceContractInstance();
+
+  // Fetch TransferSingle events from the chain, we will only handle one of them as it is most likely the one
+  // we are looking for
+  const tokenMinted = await recMarketplace.queryFilter(
+    recMarketplace.filters.TransferSingle(operator, from, to, id, value),
+    blockHeight,
+  );
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-call
   const uri: string = await recMarketplace.uri(id);
@@ -48,7 +57,9 @@ export const handleMint = async (
           id: id.toString(),
           value: value.toString(),
         },
-        blockHeight: (await getCurrentBlockHeight()).toString(),
+        blockHeight: blockHeight.toString(),
+        transactionHash: tokenMinted[0].transactionHash,
+        logIndex: tokenMinted[0].logIndex,
       },
     })
     .catch(() => {
@@ -63,6 +74,17 @@ export const handleTransfer = async (
   id: BigNumber,
   value: BigNumber,
 ) => {
+  // Get event metadata
+  const blockHeight = await getCurrentBlockHeight();
+  const recMarketplace = getRecMarketplaceContractInstance();
+
+  // Fetch TransferSingle events from the chain, we will only handle one of them as it is most likely the one
+  // we are looking for
+  const tokenTransfered = await recMarketplace.queryFilter(
+    recMarketplace.filters.TransferSingle(operator, from, to, id, value),
+    blockHeight,
+  );
+
   const prisma = new PrismaClient();
 
   await prisma.event
@@ -79,7 +101,9 @@ export const handleTransfer = async (
           id: id.toString(),
           value: value.toString(),
         },
-        blockHeight: (await getCurrentBlockHeight()).toString(),
+        blockHeight: blockHeight.toString(),
+        transactionHash: tokenTransfered[0].transactionHash,
+        logIndex: tokenTransfered[0].logIndex,
       },
     })
     .catch(() => {
@@ -94,6 +118,17 @@ export const handleRedeem = async (
   tokenId: BigNumber,
   amount: BigNumber,
 ) => {
+  // Get event metadata
+  const blockHeight = await getCurrentBlockHeight();
+  const recMarketplace = getRecMarketplaceContractInstance();
+
+  // Fetch Redeem events from the chain, we will only handle one of them as it is most likely the one
+  // we are looking for
+  const tokenRedeemed = await recMarketplace.queryFilter(
+    recMarketplace.filters.Redeem(owner, tokenId, amount),
+    blockHeight,
+  );
+
   const prisma = new PrismaClient();
 
   await prisma.event
@@ -108,7 +143,9 @@ export const handleRedeem = async (
           tokenId: tokenId.toString(),
           amount: amount.toString(),
         },
-        blockHeight: (await getCurrentBlockHeight()).toString(),
+        blockHeight: blockHeight.toString(),
+        transactionHash: tokenRedeemed[0].transactionHash,
+        logIndex: tokenRedeemed[0].logIndex,
       },
     })
     .catch(() => {

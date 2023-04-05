@@ -2,21 +2,14 @@ import { useRouter } from 'next/router';
 import { useAccount, useContractRead } from 'wagmi';
 
 import recMarketplace from '@/config/rec-marketplace';
+import { ADMIN_ROLE } from '@/lib/utils';
 import { RolesTable } from '@/components/admin/roles';
+import { SetRole } from '@/components/set-role-dialog';
 import { Separator } from '@/components/ui/separator';
 
 export const Admin = () => {
   const { address } = useAccount();
   const router = useRouter();
-
-  const {
-    data: adminRole,
-    isLoading: adminRoleLoading,
-    isError: adminRoleError,
-  } = useContractRead({
-    ...recMarketplace,
-    functionName: 'DEFAULT_ADMIN_ROLE',
-  });
 
   const {
     data: isAdmin,
@@ -25,17 +18,10 @@ export const Admin = () => {
   } = useContractRead({
     ...recMarketplace,
     functionName: 'hasRole',
-    args: [adminRole, address],
+    args: [ADMIN_ROLE, address],
   });
 
-  if (
-    !adminRole ||
-    adminRoleLoading ||
-    adminRoleError ||
-    isAdminLoading ||
-    isAdminError
-  )
-    return <></>;
+  if (isAdminLoading || isAdminError) return <></>;
 
   if (!isAdmin) router.push('/');
 
@@ -52,6 +38,7 @@ export const Admin = () => {
         </div>
       </div>
       <Separator className="my-4" />
+      <SetRole />
       <RolesTable isRedeemer={true} />
     </section>
   );

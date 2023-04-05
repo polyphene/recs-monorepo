@@ -12,6 +12,7 @@ import {
 import recMarketplace from '@/config/rec-marketplace';
 import { adminSiteConfig, siteConfig } from '@/config/site';
 import useIsSSR from '@/lib/useIsSSR';
+import { ADMIN_ROLE } from '@/lib/utils';
 import { Icons } from '@/components/icons';
 import { MainNav } from '@/components/main-nav';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -30,15 +31,10 @@ export function SiteHeader() {
     }
   }, [error?.message]);
 
-  const { data: roleData } = useContractRead({
-    ...recMarketplace,
-    functionName: 'DEFAULT_ADMIN_ROLE',
-  });
-
   const { data: isAdmin } = useContractRead({
     ...recMarketplace,
     functionName: 'hasRole',
-    args: [roleData, address],
+    args: [ADMIN_ROLE, address],
   });
 
   return (

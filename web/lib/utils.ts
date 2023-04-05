@@ -3,7 +3,7 @@ import { ClassValue, clsx } from 'clsx';
 import Papa from 'papaparse';
 import { twMerge } from 'tailwind-merge';
 
-import { Metadata, ParsedMetadata } from '@/lib/storage';
+import { ParsedMetadata } from '@/lib/storage';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -34,3 +34,10 @@ export const parseCSV = async (file: File): Promise<ParsedMetadata[]> => {
     });
   });
 };
+
+export const ADMIN_ROLE =
+  '0x0000000000000000000000000000000000000000000000000000000000000000';
+export const MINTER_ROLE =
+  '0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6';
+export const REDEEMER_ROLE =
+  '0x44ac9762eec3a11893fefb11d028bb3102560094137c3ed4518712475b2577cc';

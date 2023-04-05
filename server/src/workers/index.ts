@@ -29,11 +29,12 @@ export const startWorkers = () => {
     ) => {
       // Check if mint
       if (from === constants.AddressZero) {
-        handleMint(operator, from, to, id, value).catch(() =>
+        handleMint(operator, from, to, id, value).catch(e => {
+          console.log(e);
           console.log(
             `could not handle mint event for tokenId: ${id.toString()}`,
-          ),
-        );
+          );
+        });
         return;
       }
       handleTransfer(operator, from, to, id, value).catch(() =>
@@ -112,11 +113,12 @@ export const startWorkers = () => {
   contract.on(
     contract.filters.RoleRevoked(),
     (role: string, account: string, sender: string) => {
-      handleRevokeRole(role, account, sender).catch(() =>
+      handleRevokeRole(role, account, sender).catch(e => {
+        console.log(e);
         console.log(
           `could not handle revoke role ${role} event for address: ${account}`,
-        ),
-      );
+        );
+      });
       return;
     },
   );

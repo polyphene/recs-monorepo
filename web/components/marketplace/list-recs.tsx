@@ -1,26 +1,13 @@
 import { useState } from 'react';
 import { useQuery } from '@apollo/client';
-import { toast } from 'react-toastify';
-import {
-  useAccount,
-  useContractRead,
-  useContractReads,
-  useContractWrite,
-  usePrepareContractWrite,
-} from 'wagmi';
+import { useAccount, useContractRead, useContractReads } from 'wagmi';
 
 import recMarketplace from '@/config/rec-marketplace';
 import { METADATA_BY_CID } from '@/lib/graphql';
-import { waitTx } from '@/lib/utils';
 import { ListRecs } from '@/components/list-recs-dialog';
-import { MintRECs } from '@/components/mint-recs-dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 function ListRecsRow({ id }) {
   const { address } = useAccount();
-  const [listvolume, setListVolume] = useState(null);
-  const [listPrice, setListPrice] = useState(null);
 
   const {
     data: onChainData,
@@ -56,7 +43,7 @@ function ListRecsRow({ id }) {
     ],
     watch: true,
   });
-  console.log(onChainData);
+
   const {
     data,
     loading: metadataLoading,
@@ -117,7 +104,7 @@ function ListRecsRow({ id }) {
         {onChainData[0].toString()}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        {onChainData?.[4].tokenAmount.toString() ?? '0'}
+        {onChainData?.[4]?.tokenAmount.toString() ?? '0'}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
         <ListRecs id={id} />

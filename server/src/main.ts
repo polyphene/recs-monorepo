@@ -28,4 +28,4 @@ async function main() {
   });
 }
 
-main().catch(() => console.log("couldn't start graphQL server"));
+main().catch(console.log);

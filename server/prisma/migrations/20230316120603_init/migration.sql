@@ -28,12 +28,12 @@ CREATE TABLE "Metadata" (
 -- CreateTable
 CREATE TABLE "Event" (
     "id" SERIAL NOT NULL,
-    "eventId" TEXT NOT NULL,
-    "transactionHash" TEXT NOT NULL,
     "tokenId" TEXT,
     "eventType" "EventType" NOT NULL,
     "data" JSONB NOT NULL,
     "blockHeight" TEXT NOT NULL,
+    "transactionHash" TEXT NOT NULL,
+    "logIndex" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Event_pkey" PRIMARY KEY ("id")
@@ -53,9 +53,6 @@ CREATE TABLE "AddressRoles" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Metadata_cid_key" ON "Metadata"("cid");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Event_eventId_key" ON "Event"("eventId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AddressRoles_address_key" ON "AddressRoles"("address");

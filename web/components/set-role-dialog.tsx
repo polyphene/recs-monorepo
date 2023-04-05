@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { useContractWrite, usePrepareContractWrite } from 'wagmi';
 
 import recMarketplace from '@/config/rec-marketplace';
-import { waitTx } from '@/lib/utils';
+import { ADMIN_ROLE, MINTER_ROLE, REDEEMER_ROLE, waitTx } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -19,18 +19,24 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-export function ListRecs({ id }) {
+export function SetRole() {
   const [open, setOpen] = useState(false);
-  const [volume, setVolume] = useState(null);
-  const [unitPrice, setUnitPrice] = useState(null);
+  const [address, setAddress] = useState('');
+  const [role, setRole] = useState('');
 
   const { config } = usePrepareContractWrite({
     ...recMarketplace,
-    functionName: 'list',
-    args: [id, volume ?? 0, unitPrice ?? 0],
+    functionName: 'grantRole',
+    args: [role, address],
   });
-  console.log(config);
   const { writeAsync } = useContractWrite({
     ...config,
     onSettled: (data, error) => {
@@ -43,61 +49,54 @@ export function ListRecs({ id }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="w-fit">List</Button>
+        <Button className="w-fit">Add account</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Listing RECs</DialogTitle>
-          <DialogDescription>
-            Select a volume to sell and set a unit price.
-          </DialogDescription>
+          <DialogTitle>Grant Role</DialogTitle>
+          <DialogDescription>Grant a role to a new account.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="volume" className="text-right">
-              Volume
+              Address
             </Label>
             <Input
               id="volume"
-              type="number"
               placeholder="Volume"
               className="col-span-3"
-              value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="unit-price" className="text-right">
-              Unit Price (Gwei)
+              Role
             </Label>
-            <Input
-              id="unit-price"
-              placeholder="Unit Price"
-              type="number"
-              className="col-span-3"
-              value={unitPrice}
-              onChange={(e) => setUnitPrice(Number(e.target.value))}
-            />
+            <Select onValueChange={(v) => setRole(v)}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ADMIN_ROLE}>Admin</SelectItem>
+                <SelectItem value={MINTER_ROLE}>Minter</SelectItem>
+                <SelectItem value={REDEEMER_ROLE}>Redeemer</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>
           <Button
-            disabled={
-              !writeAsync &&
-              !unitPrice &&
-              !volume &&
-              unitPrice === 0 &&
-              volume === 0
-            }
+            disabled={!writeAsync && !address && !role}
             onClick={() => {
               toast.promise(waitTx(writeAsync?.()), {
-                pending: 'Listing RECs',
-                success: 'RECs listed !',
-                error: "Couldn't list RECs",
+                pending: 'Granting role',
+                success: 'Role granted !',
+                error: "Couldn't grant role",
               });
             }}
           >
-            List
+            Grant role
           </Button>
         </DialogFooter>
       </DialogContent>

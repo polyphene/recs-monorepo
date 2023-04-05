@@ -1,6 +1,6 @@
 import { DateTimeResolver, DateTimeTypeDefinition } from 'graphql-scalars';
 import { makeExecutableSchema } from '@graphql-tools/schema';
-import type { Metadata } from '@prisma/client';
+import type { AddressRoles, Metadata } from '@prisma/client';
 import { GraphQLContext } from '../context';
 import { CID } from 'multiformats';
 import { GraphQLError } from 'graphql/error';
@@ -13,10 +13,20 @@ const typeDefinitions = /* GraphQL */ `
     metadata(id: ID!): Metadata
     metadataByCreator(broker: String!): [Metadata!]!
     metadataByCid(cid: String!): Metadata
+    roles: [AddressRoles!]!
   }
 
   type Mutation {
     addMetadata(input: AddMetadataInput!): CountPayload!
+  }
+
+  type AddressRoles {
+    id: ID!
+    address: String!
+    isAdmin: Boolean!
+    isMinter: Boolean!
+    isRedeemer: Boolean!
+    createdAt: DateTime!
   }
 
   type Metadata {
@@ -142,6 +152,15 @@ const resolvers = {
     ): Promise<Metadata | null> {
       return context.prisma.metadata.findFirst({
         where: { cid: args.cid },
+      });
+    },
+    async roles(
+      parent: unknown,
+      args: unknown,
+      context: GraphQLContext,
+    ): Promise<Array<AddressRoles>> {
+      return context.prisma.addressRoles.findMany({
+        where: {},
       });
     },
   },

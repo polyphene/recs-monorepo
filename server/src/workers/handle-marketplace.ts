@@ -1,6 +1,9 @@
 import { BigNumber } from 'ethers';
 import { EventType, PrismaClient } from '@prisma/client';
-import { getCurrentBlockHeight } from '../utils/web3-utils';
+import {
+  getCurrentBlockHeight,
+  getRecMarketplaceContractInstance,
+} from '../utils/web3-utils';
 
 export const handleList = async (
   seller: string,
@@ -8,6 +11,17 @@ export const handleList = async (
   tokenAmount: BigNumber,
   price: BigNumber,
 ) => {
+  // Get event metadata
+  const blockHeight = await getCurrentBlockHeight();
+  const recMarketplace = getRecMarketplaceContractInstance();
+
+  // Fetch TokenListed events from the chain, we will only handle one of them as it is most likely the one
+  // we are looking for
+  const tokenListedEvents = await recMarketplace.queryFilter(
+    recMarketplace.filters.TokenListed(seller, tokenId, tokenAmount, price),
+    blockHeight,
+  );
+
   const prisma = new PrismaClient();
 
   await prisma.event
@@ -23,7 +37,9 @@ export const handleList = async (
           tokenAmount: tokenAmount.toString(),
           price: price.toString(),
         },
-        blockHeight: (await getCurrentBlockHeight()).toString(),
+        blockHeight: blockHeight.toString(),
+        transactionHash: tokenListedEvents[0].transactionHash,
+        logIndex: tokenListedEvents[0].logIndex,
       },
     })
     .catch(() => {
@@ -40,6 +56,23 @@ export const handleBuy = async (
   tokenAmount: BigNumber,
   price: BigNumber,
 ) => {
+  // Get event metadata
+  const blockHeight = await getCurrentBlockHeight();
+  const recMarketplace = getRecMarketplaceContractInstance();
+
+  // Fetch TokenBought events from the chain, we will only handle one of them as it is most likely the one
+  // we are looking for
+  const tokenBoughtEvents = await recMarketplace.queryFilter(
+    recMarketplace.filters.TokenBought(
+      buyer,
+      seller,
+      tokenId,
+      tokenAmount,
+      price,
+    ),
+    blockHeight,
+  );
+
   const prisma = new PrismaClient();
 
   await prisma.event
@@ -56,7 +89,9 @@ export const handleBuy = async (
           tokenAmount: tokenAmount.toString(),
           price: price.toString(),
         },
-        blockHeight: (await getCurrentBlockHeight()).toString(),
+        blockHeight: blockHeight.toString(),
+        transactionHash: tokenBoughtEvents[0].transactionHash,
+        logIndex: tokenBoughtEvents[0].logIndex,
       },
     })
     .catch(() => {

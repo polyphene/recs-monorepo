@@ -43,12 +43,7 @@ const seedRoles = async (fromBlock: number) => {
   // Iterate over events, generate document in DB and the new AddressRoles state
   const accountRoles: AccountRolesDictionary = {};
   const handledEvents: string[] = [];
-  events.forEach(e => {
-    console.log(
-      `event ${e.event ?? 'noEvent'} at block ${e.blockNumber} w/ block hash ${
-        e.blockHash
-      }`,
-    );
+  for (const e of events) {
     if (!e.args) {
       throw new Error('event in the list have no args');
     }
@@ -57,6 +52,18 @@ const seedRoles = async (fromBlock: number) => {
       e.blockNumber.toString() + e.transactionHash + e.logIndex.toString();
 
     if (handledEvents.includes(uniqueEventId)) {
+      continue;
+    }
+
+    const fetchedEvent = await prisma.event.findFirst({
+      where: {
+        blockHeight: e.blockNumber.toString(),
+        transactionHash: e.transactionHash,
+        logIndex: e.logIndex,
+      },
+    });
+
+    if (fetchedEvent !== null) {
       return;
     }
 
@@ -68,8 +75,14 @@ const seedRoles = async (fromBlock: number) => {
 
     // We do not handle auditor role for now
     if (role === AUDITOR_ROLE) {
-      return;
+      continue;
     }
+
+    console.log(
+      `event ${e.event ?? 'noEvent'} at block ${e.blockNumber} w/ block hash ${
+        e.blockHash
+      }`,
+    );
 
     const eventType =
       e.event !== 'RoleRevoked' ? EventType.GRANT_ROLE : EventType.REVOKE_ROLE;
@@ -87,6 +100,8 @@ const seedRoles = async (fromBlock: number) => {
             sender,
           },
           blockHeight: e.blockNumber.toString(),
+          transactionHash: e.transactionHash,
+          logIndex: e.logIndex,
         },
       })
       .catch(() => {
@@ -107,7 +122,7 @@ const seedRoles = async (fromBlock: number) => {
     accountRoles[account][getRoleJsonKey(role)] = e.event !== 'RoleRevoked';
 
     handledEvents.push(uniqueEventId);
-  });
+  }
 
   // For each AddressRole run upsert
   await Promise.all(
@@ -172,6 +187,6 @@ export const constructRolesTable = async () => {
 
     fromBlock = latestHandledEvent.blockHeight;
   }
-  console.log(parseInt(fromBlock, 10));
+
   await seedRoles(parseInt(fromBlock, 10));
 };
