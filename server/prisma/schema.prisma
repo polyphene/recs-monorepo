@@ -38,6 +38,8 @@ model Event {
   transactionHash String
   logIndex        Int
   createdAt       DateTime  @default(now())
+
+  @@unique([blockHeight, transactionHash, logIndex])
 }
 
 enum EventType {

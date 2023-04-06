@@ -21,15 +21,17 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export function ListRecs({ id }) {
+export function BuyRecs({ id, seller, price }) {
   const [open, setOpen] = useState(false);
   const [volume, setVolume] = useState(null);
-  const [unitPrice, setUnitPrice] = useState(null);
 
   const { config } = usePrepareContractWrite({
     ...recMarketplace,
-    functionName: 'list',
-    args: [id, volume ?? 0, unitPrice ?? 0],
+    functionName: 'buy',
+    args: [id, seller, volume ?? 0],
+    overrides: {
+      value: price * volume,
+    },
   });
 
   const { writeAsync } = useContractWrite({
@@ -38,7 +40,6 @@ export function ListRecs({ id }) {
       if (!error) {
         setOpen(false);
         setVolume(null);
-        setUnitPrice(null);
       }
     },
   });
@@ -46,14 +47,12 @@ export function ListRecs({ id }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="w-fit">List</Button>
+        <Button className="w-fit">Buy</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Listing RECs</DialogTitle>
-          <DialogDescription>
-            Select a volume to sell and set a unit price.
-          </DialogDescription>
+          <DialogTitle>Buy RECs</DialogTitle>
+          <DialogDescription>Select a volume to buy.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
@@ -71,36 +70,30 @@ export function ListRecs({ id }) {
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="unit-price" className="text-right">
-              Unit Price (Gwei)
+              Amount to pay (Gwei)
             </Label>
             <Input
+              disabled
               id="unit-price"
               placeholder="Unit Price"
               className="col-span-3"
               type="number"
-              value={unitPrice?.toString() ?? ''}
-              onChange={(e) => setUnitPrice(BigNumber.from(e.target.value))}
+              value={volume * price}
             />
           </div>
         </div>
         <DialogFooter>
           <Button
-            disabled={
-              !writeAsync &&
-              !unitPrice &&
-              !volume &&
-              unitPrice === 0 &&
-              volume === 0
-            }
+            disabled={!writeAsync && !volume && volume === 0}
             onClick={() => {
               toast.promise(waitTx(writeAsync?.()), {
-                pending: 'Listing RECs',
-                success: 'RECs listed !',
-                error: "Couldn't list RECs",
+                pending: 'Buying RECs',
+                success: 'RECs bought !',
+                error: "Couldn't buy RECs",
               });
             }}
           >
-            List
+            Buy
           </Button>
         </DialogFooter>
       </DialogContent>

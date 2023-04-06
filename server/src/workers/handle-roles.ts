@@ -44,22 +44,31 @@ export const handleGrantRole = async (
       );
     });
 
+  const roleGrantedData = {
+    tokenId: null,
+    // Disabling eslint rule which poses problem at assignment (prisma issue here)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+    eventType: EventType.GRANT_ROLE,
+    data: {
+      role,
+      account,
+      sender,
+    },
+    blockHeight: blockHeight.toString(),
+    transactionHash: roleGranted[0].transactionHash,
+    logIndex: roleGranted[0].logIndex,
+  };
   await prisma.event
-    .create({
-      data: {
-        tokenId: null,
-        // Disabling eslint rule which poses problem at assignment (prisma issue here)
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-        eventType: EventType.GRANT_ROLE,
-        data: {
-          role,
-          account,
-          sender,
+    .upsert({
+      where: {
+        blockHeight_transactionHash_logIndex: {
+          blockHeight: blockHeight.toString(),
+          transactionHash: roleGranted[0].transactionHash,
+          logIndex: roleGranted[0].logIndex,
         },
-        blockHeight: blockHeight.toString(),
-        transactionHash: roleGranted[0].transactionHash,
-        logIndex: roleGranted[0].logIndex,
       },
+      update: roleGrantedData,
+      create: roleGrantedData,
     })
     .catch(e => {
       console.log(e);
@@ -108,22 +117,31 @@ export const handleRevokeRole = async (
       );
     });
 
+  const roleRevokedData = {
+    tokenId: null,
+    // Disabling eslint rule which poses problem at assignment (prisma issue here)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+    eventType: EventType.REVOKE_ROLE,
+    data: {
+      role,
+      account,
+      sender,
+    },
+    blockHeight: blockHeight.toString(),
+    transactionHash: roleRevoked[0].transactionHash,
+    logIndex: roleRevoked[0].logIndex,
+  };
   await prisma.event
-    .create({
-      data: {
-        tokenId: null,
-        // Disabling eslint rule which poses problem at assignment (prisma issue here)
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-        eventType: EventType.REVOKE_ROLE,
-        data: {
-          role,
-          account,
-          sender,
+    .upsert({
+      where: {
+        blockHeight_transactionHash_logIndex: {
+          blockHeight: blockHeight.toString(),
+          transactionHash: roleRevoked[0].transactionHash,
+          logIndex: roleRevoked[0].logIndex,
         },
-        blockHeight: blockHeight.toString(),
-        transactionHash: roleRevoked[0].transactionHash,
-        logIndex: roleRevoked[0].logIndex,
       },
+      update: roleRevokedData,
+      create: roleRevokedData,
     })
     .catch(() => {
       console.log(

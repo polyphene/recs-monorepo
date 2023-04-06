@@ -442,6 +442,41 @@ export default {
       type: 'function',
     },
     {
+      inputs: [],
+      name: 'currentTokenListings',
+      outputs: [
+        {
+          components: [
+            {
+              internalType: 'uint256',
+              name: 'tokenId',
+              type: 'uint256',
+            },
+            {
+              internalType: 'address',
+              name: 'seller',
+              type: 'address',
+            },
+            {
+              internalType: 'uint256',
+              name: 'tokenAmount',
+              type: 'uint256',
+            },
+            {
+              internalType: 'uint256',
+              name: 'price',
+              type: 'uint256',
+            },
+          ],
+          internalType: 'struct RECMarketPlace.TokenListing[]',
+          name: '',
+          type: 'tuple[]',
+        },
+      ],
+      stateMutability: 'view',
+      type: 'function',
+    },
+    {
       inputs: [
         {
           internalType: 'bytes32',
@@ -883,6 +918,11 @@ export default {
         {
           components: [
             {
+              internalType: 'uint256',
+              name: 'tokenId',
+              type: 'uint256',
+            },
+            {
               internalType: 'address',
               name: 'seller',
               type: 'address',
@@ -918,7 +958,7 @@ export default {
       outputs: [
         {
           internalType: 'uint256',
-          name: '',
+          name: 'total',
           type: 'uint256',
         },
       ],

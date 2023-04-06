@@ -27,10 +27,12 @@ services:
       - PORT=4000
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/recs?schema=recs&connect_timeout=3000
-      - REC_MARKETPLACE_ADDRESS=0x5E9536539aE536C242026d2d9E38E188C3BA1CCa
       - ETH_WSS_URI=wss://wss.hyperspace.node.glif.io/apigw/lotus/rpc/v1
       - ETH_HTTP_URI=https://api.hyperspace.node.glif.io/rpc/v1
-      - DEPLOYMENT_BLOCK_HEIGHT=210685
+      # It is recommended to deploy a new rec marketplace contract for your developer environment.
+      # See https://github.com/polyphene/recs-contract
+      - REC_MARKETPLACE_ADDRESS=0x83647a728c14238a8DfaF51144f3aa1DDc73ee34
+      - DEPLOYMENT_BLOCK_HEIGHT=230596
     ports:
       # GraphQL GUI
       - "4000:4000"

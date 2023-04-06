@@ -1,6 +1,6 @@
 import { DateTimeResolver, DateTimeTypeDefinition } from 'graphql-scalars';
 import { makeExecutableSchema } from '@graphql-tools/schema';
-import type { AddressRoles, Metadata } from '@prisma/client';
+import type { AddressRoles, Metadata, Event } from '@prisma/client';
 import { GraphQLContext } from '../context';
 import { CID } from 'multiformats';
 import { GraphQLError } from 'graphql/error';
@@ -14,10 +14,64 @@ const typeDefinitions = /* GraphQL */ `
     metadataByCreator(broker: String!): [Metadata!]!
     metadataByCid(cid: String!): Metadata
     roles: [AddressRoles!]!
+    eventsByTokenId(tokenId: String!): [Event!]!
   }
 
   type Mutation {
     addMetadata(input: AddMetadataInput!): CountPayload!
+  }
+
+  type Event {
+    id: ID!
+    tokenId: String
+    eventType: String!
+    data: EventData!
+    blockHeight: String!
+    transactionHash: String!
+    logIndex: Int!
+    createdAt: DateTime!
+  }
+
+  union EventData =
+      RoleEventData
+    | TransferEventData
+    | ListEventData
+    | BuyEventData
+    | RedeemEventData
+
+  type RoleEventData {
+    role: String!
+    sender: String!
+    account: String!
+  }
+
+  type TransferEventData {
+    id: String!
+    from: String!
+    to: String!
+    value: String!
+    operator: String!
+  }
+
+  type ListEventData {
+    tokenId: String!
+    seller: String!
+    tokenAmount: String!
+    price: String!
+  }
+
+  type BuyEventData {
+    buyer: String!
+    price: String!
+    seller: String!
+    tokenId: String!
+    tokenAmount: String!
+  }
+
+  type RedeemEventData {
+    owner: String!
+    amount: String!
+    tokenId: String!
   }
 
   type AddressRoles {
@@ -94,6 +148,41 @@ type MetadataInput = {
   volumeMWh: number;
 };
 
+type RoleEventData = {
+  role: string;
+  sender: string;
+  account: string;
+};
+
+type TransferEventData = {
+  id: string;
+  from: string;
+  to: string;
+  value: string;
+  operator: string;
+};
+
+type ListEventData = {
+  tokenId: string;
+  seller: string;
+  tokenAmount: string;
+  price: string;
+};
+
+type BuyEventData = {
+  buyer: string;
+  price: string;
+  seller: string;
+  tokenId: string;
+  tokenAmount: string;
+};
+
+type RedeemEventData = {
+  owner: string;
+  amount: string;
+  tokenId: string;
+};
+
 const resolvers = {
   DateTime: DateTimeResolver,
   Metadata: {
@@ -114,6 +203,27 @@ const resolvers = {
     volumeMWh: (parent: Metadata) => parent.volumeMWh,
     createdBy: (parent: Metadata) => parent.createdBy,
     createdAt: (parent: Metadata) => parent.createdAt,
+  },
+  EventData: {
+    __resolveType(obj: { role: any; to: any; buyer: any; owner: any }) {
+      if (obj.role) {
+        return 'RoleEventData';
+      }
+
+      if (obj.to) {
+        return 'TransferEventData';
+      }
+
+      if (obj.buyer) {
+        return 'BuyEventData';
+      }
+
+      if (obj.owner) {
+        return 'RedeemEventData';
+      }
+
+      return 'ListEventData';
+    },
   },
   Query: {
     async metadata(
@@ -161,6 +271,15 @@ const resolvers = {
     ): Promise<Array<AddressRoles>> {
       return context.prisma.addressRoles.findMany({
         where: {},
+      });
+    },
+    async eventsByTokenId(
+      parent: unknown,
+      { tokenId }: { tokenId: string },
+      context: GraphQLContext,
+    ): Promise<Array<Event>> {
+      return context.prisma.event.findMany({
+        where: { tokenId },
       });
     },
   },

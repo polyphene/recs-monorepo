@@ -1,13 +1,19 @@
-import { useState } from 'react';
 import { useQuery } from '@apollo/client';
 import { BigNumber } from 'ethers';
 import { useAccount, useContractRead, useContractReads } from 'wagmi';
 
 import recMarketplace from '@/config/rec-marketplace';
 import { METADATA_BY_CID } from '@/lib/graphql';
-import { ListRecs } from '@/components/list-recs-dialog';
+import { BuyRecs } from '@/components/buy-recs-dialog';
 
-function ListRecsRow({ id }) {
+type TokenListing = {
+  tokenId: number;
+  seller: string;
+  tokenAmount: BigNumber;
+  price: BigNumber;
+};
+
+function BuyRecsRow({ listing }: { listing: TokenListing }) {
   const { address } = useAccount();
 
   // @ts-ignore
@@ -32,28 +38,18 @@ function ListRecsRow({ id }) {
     contracts: [
       {
         ...recMarketplace,
-        functionName: 'supplyOf',
-        args: [id],
-      },
-      {
-        ...recMarketplace,
         functionName: 'balanceOf',
-        args: [address, id],
-      },
-      {
-        ...recMarketplace,
-        functionName: 'amountRedeemed',
-        args: [address, id],
+        args: [listing.seller, listing.tokenId],
       },
       {
         ...recMarketplace,
         functionName: 'uri',
-        args: [id],
+        args: [listing.tokenId],
       },
       {
         ...recMarketplace,
         functionName: 'tokenSupplyListed',
-        args: [id],
+        args: [listing.tokenId],
       },
     ],
     watch: true,
@@ -64,15 +60,13 @@ function ListRecsRow({ id }) {
     loading: metadataLoading,
     error: metadataError,
   } = useQuery(METADATA_BY_CID, {
-    variables: { cid: onChainData?.[3] ?? '' },
+    variables: { cid: onChainData?.[1] ?? '' },
   });
 
   if (
     onChainDataError ||
     onchainDataLoading ||
-    !onChainData?.[0] ||
-    onChainData?.[1].toString() === '0' ||
-    onChainData?.[2].toString() === '0' ||
+    onChainData?.[0].toString() === '0' ||
     metadataLoading ||
     metadataError ||
     !data?.metadataByCid
@@ -82,7 +76,7 @@ function ListRecsRow({ id }) {
   return (
     <tr className="m-0 border-t border-slate-200 p-0 even:bg-slate-100 dark:border-slate-700 dark:even:bg-slate-800">
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        {id}
+        {listing.tokenId.toString()}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
         {data.metadataByCid.country}
@@ -97,51 +91,56 @@ function ListRecsRow({ id }) {
         {data.metadataByCid.reportingEnd}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
+        {listing.seller}
+      </td>
+      <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
         <a
           className="underline hover:no-underline"
-          href={`https://explore.ipld.io/#/explore/${onChainData?.[3].toString()}`}
+          href={`https://explore.ipld.io/#/explore/${onChainData?.[1].toString()}`}
           target="_blank"
           rel="noreferrer"
         >
-          {onChainData?.[3].toString().substring(0, 14)}...
-          {onChainData?.[3]
+          {onChainData?.[1].toString().substring(0, 14)}...
+          {onChainData?.[1]
             .toString()
             .substring(
-              onChainData?.[3].toString().length - 14,
-              onChainData?.[3].toString().length
+              onChainData?.[1].toString().length - 14,
+              onChainData?.[1].toString().length
             )}
         </a>
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        {onChainData[1].toString()}
+        {onChainData[2].toString() ?? '0'}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        {onChainData[0].toString()}
-      </td>
-      <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        {onChainData[4].toString() ?? '0'}
-      </td>
-      <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        <ListRecs id={id} />
+        <BuyRecs
+          id={listing.tokenId.toString()}
+          seller={listing.seller}
+          price={listing.price}
+        />
       </td>
     </tr>
   );
 }
 
-export function ListRecsTable() {
+export function BuyRecsTable() {
   const {
-    data: nextId,
+    data,
     isLoading,
     isError,
+  }: {
+    data: Array<TokenListing>;
+    isLoading: boolean;
+    isError: boolean;
   } = useContractRead({
     ...recMarketplace,
-    functionName: 'nextId',
+    functionName: 'currentTokenListings',
     watch: true,
   });
 
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Couldn&apos;t fetch next REC id</p>;
-  if (nextId.toString() === '0') return <p>No RECs owned</p>;
+  if (data.length === 0) return <p>No RECs in sale</p>;
 
   return (
     <table className="w-full">
@@ -163,13 +162,10 @@ export function ListRecsTable() {
             Reporting End
           </th>
           <th className="border border-slate-200 px-4 py-2 text-left font-bold dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
+            Broker
+          </th>
+          <th className="border border-slate-200 px-4 py-2 text-left font-bold dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
             Cid
-          </th>
-          <th className="border border-slate-200 px-4 py-2 text-left font-bold dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-            RECs owned
-          </th>
-          <th className="border border-slate-200 px-4 py-2 text-left font-bold dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-            Total Supply
           </th>
           <th className="border border-slate-200 px-4 py-2 text-left font-bold dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
             Currently Listed
@@ -180,8 +176,13 @@ export function ListRecsTable() {
         </tr>
       </thead>
       <tbody>
-        {[...Array(Number(nextId)).keys()].map((e) => {
-          return <ListRecsRow id={e} key={e} />;
+        {data.map((e) => {
+          return (
+            <BuyRecsRow
+              listing={e}
+              key={`${e.seller}${e.tokenId.toString()}`}
+            />
+          );
         })}
       </tbody>
     </table>

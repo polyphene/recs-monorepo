@@ -17,30 +17,39 @@ export const handleList = async (
 
   // Fetch TokenListed events from the chain, we will only handle one of them as it is most likely the one
   // we are looking for
-  const tokenListedEvents = await recMarketplace.queryFilter(
-    recMarketplace.filters.TokenListed(seller, tokenId, tokenAmount, price),
+  const tokenListed = await recMarketplace.queryFilter(
+    recMarketplace.filters.TokenListed(seller, tokenId),
     blockHeight,
   );
 
   const prisma = new PrismaClient();
 
+  const listedData = {
+    tokenId: tokenId.toString(),
+    // Disabling eslint rule which poses problem at assignment (prisma issue here)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+    eventType: EventType.LIST,
+    data: {
+      seller,
+      tokenId: tokenId.toString(),
+      tokenAmount: tokenAmount.toString(),
+      price: price.toString(),
+    },
+    blockHeight: blockHeight.toString(),
+    transactionHash: tokenListed[0].transactionHash,
+    logIndex: tokenListed[0].logIndex,
+  };
   await prisma.event
-    .create({
-      data: {
-        tokenId: tokenId.toString(),
-        // Disabling eslint rule which poses problem at assignment (prisma issue here)
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-        eventType: EventType.LIST,
-        data: {
-          seller,
-          tokenId: tokenId.toString(),
-          tokenAmount: tokenAmount.toString(),
-          price: price.toString(),
+    .upsert({
+      where: {
+        blockHeight_transactionHash_logIndex: {
+          blockHeight: blockHeight.toString(),
+          transactionHash: tokenListed[0].transactionHash,
+          logIndex: tokenListed[0].logIndex,
         },
-        blockHeight: blockHeight.toString(),
-        transactionHash: tokenListedEvents[0].transactionHash,
-        logIndex: tokenListedEvents[0].logIndex,
       },
+      update: listedData,
+      create: listedData,
     })
     .catch(() => {
       console.log(
@@ -62,37 +71,40 @@ export const handleBuy = async (
 
   // Fetch TokenBought events from the chain, we will only handle one of them as it is most likely the one
   // we are looking for
-  const tokenBoughtEvents = await recMarketplace.queryFilter(
-    recMarketplace.filters.TokenBought(
-      buyer,
-      seller,
-      tokenId,
-      tokenAmount,
-      price,
-    ),
+  const tokenBought = await recMarketplace.queryFilter(
+    recMarketplace.filters.TokenBought(buyer, seller, tokenId),
     blockHeight,
   );
 
   const prisma = new PrismaClient();
 
+  const boughtData = {
+    tokenId: tokenId.toString(),
+    // Disabling eslint rule which poses problem at assignment (prisma issue here)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+    eventType: EventType.BUY,
+    data: {
+      buyer,
+      seller,
+      tokenId: tokenId.toString(),
+      tokenAmount: tokenAmount.toString(),
+      price: price.toString(),
+    },
+    blockHeight: blockHeight.toString(),
+    transactionHash: tokenBought[0].transactionHash,
+    logIndex: tokenBought[0].logIndex,
+  };
   await prisma.event
-    .create({
-      data: {
-        tokenId: tokenId.toString(),
-        // Disabling eslint rule which poses problem at assignment (prisma issue here)
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-        eventType: EventType.BUY,
-        data: {
-          buyer,
-          seller,
-          tokenId: tokenId.toString(),
-          tokenAmount: tokenAmount.toString(),
-          price: price.toString(),
+    .upsert({
+      where: {
+        blockHeight_transactionHash_logIndex: {
+          blockHeight: blockHeight.toString(),
+          transactionHash: tokenBought[0].transactionHash,
+          logIndex: tokenBought[0].logIndex,
         },
-        blockHeight: blockHeight.toString(),
-        transactionHash: tokenBoughtEvents[0].transactionHash,
-        logIndex: tokenBoughtEvents[0].logIndex,
       },
+      update: boughtData,
+      create: boughtData,
     })
     .catch(() => {
       console.log(

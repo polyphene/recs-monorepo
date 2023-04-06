@@ -55,4 +55,7 @@ CREATE TABLE "AddressRoles" (
 CREATE UNIQUE INDEX "Metadata_cid_key" ON "Metadata"("cid");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Event_blockHeight_transactionHash_logIndex_key" ON "Event"("blockHeight", "transactionHash", "logIndex");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "AddressRoles_address_key" ON "AddressRoles"("address");

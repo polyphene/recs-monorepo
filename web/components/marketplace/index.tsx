@@ -1,3 +1,4 @@
+import { BuyRecsTable } from '@/components/marketplace/buy-recs';
 import { ListRecsTable } from '@/components/marketplace/list-recs';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,6 +26,7 @@ export function Marketplace() {
               </div>
             </div>
             <Separator className="my-4" />
+            <BuyRecsTable />
           </TabsContent>
           <TabsContent value="list" className="border-none p-0">
             <div className="flex items-center justify-between">

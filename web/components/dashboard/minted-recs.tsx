@@ -38,7 +38,7 @@ function MintedRecRow({ id }) {
     ],
     watch: true,
   });
-  console.log(data);
+
   if (data?.[3] !== address || metadataIsError || metadataIsLoading || !data)
     return <></>;
 

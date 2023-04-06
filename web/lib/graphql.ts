@@ -48,3 +48,54 @@ export const ROLES = gql`
     }
   }
 `;
+
+export const EVENTS_BY_TOKEN_ID = gql`
+  query EventsByTokenId($tokenId: String!) {
+    eventsByTokenId(tokenId: $tokenId) {
+      blockHeight
+      createdAt
+      eventType
+      id
+      logIndex
+      tokenId
+      transactionHash
+      data {
+        ... on RoleEventData {
+          __typename
+          account
+          sender
+          role
+        }
+        ... on ListEventData {
+          __typename
+          price
+          seller
+          tokenAmount
+          tokenId
+        }
+        ... on BuyEventData {
+          __typename
+          price
+          buyer
+          seller
+          tokenAmount
+          tokenId
+        }
+        ... on RedeemEventData {
+          __typename
+          amount
+          owner
+          tokenId
+        }
+        ... on TransferEventData {
+          __typename
+          from
+          id
+          operator
+          to
+          value
+        }
+      }
+    }
+  }
+`;
