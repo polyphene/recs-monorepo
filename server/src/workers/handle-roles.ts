@@ -37,7 +37,7 @@ export const handleGrantRole = async (
       },
     })
     .catch(() => {
-      console.log(
+      console.warn(
         `could not upsert addressRoles '${getRoleJsonKey(
           role,
         )}' to true for address: ${account}`,
@@ -70,9 +70,8 @@ export const handleGrantRole = async (
       update: roleGrantedData,
       create: roleGrantedData,
     })
-    .catch(e => {
-      console.log(e);
-      console.log(
+    .catch(() => {
+      console.warn(
         `could not create GRANT_ROLE ${role} event for account: ${account}`,
       );
     });
@@ -110,7 +109,7 @@ export const handleRevokeRole = async (
       },
     })
     .catch(() => {
-      console.log(
+      console.warn(
         `could not upsert addressRoles '${getRoleJsonKey(
           role,
         )}' to true for address: ${account}`,
@@ -144,7 +143,7 @@ export const handleRevokeRole = async (
       create: roleRevokedData,
     })
     .catch(() => {
-      console.log(
+      console.warn(
         `could not create GRANT_ROLE ${role} event for account: ${account}`,
       );
     });

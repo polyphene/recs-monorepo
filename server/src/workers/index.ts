@@ -27,18 +27,20 @@ export const startWorkers = () => {
       id: BigNumber,
       value: BigNumber,
     ) => {
+      console.info(
+        `Received 'TransferSingle' event: [operator=${operator}, from=${from}, to=${to}, id=${id.toString()}, value=${value.toString()}]`,
+      );
       // Check if mint
       if (from === constants.AddressZero) {
-        handleMint(operator, from, to, id, value).catch(e => {
-          console.log(e);
-          console.log(
+        handleMint(operator, from, to, id, value).catch(() => {
+          console.warn(
             `could not handle mint event for tokenId: ${id.toString()}`,
           );
         });
         return;
       }
       handleTransfer(operator, from, to, id, value).catch(() =>
-        console.log(
+        console.warn(
           `could not handle transfer event for tokenId: ${id.toString()}`,
         ),
       );
@@ -55,8 +57,11 @@ export const startWorkers = () => {
       tokenAmount: BigNumber,
       price: BigNumber,
     ) => {
+      console.info(
+        `Received 'TokenListed' event: [seller=${seller}, tokenId=${tokenId.toString()}, tokenAmount=${tokenAmount.toString()}, price=${price.toString()}]`,
+      );
       handleList(seller, tokenId, tokenAmount, price).catch(() =>
-        console.log(
+        console.warn(
           `could not handle list event for tokenId: ${tokenId.toString()}`,
         ),
       );
@@ -74,8 +79,11 @@ export const startWorkers = () => {
       tokenAmount: BigNumber,
       price: BigNumber,
     ) => {
+      console.info(
+        `Received 'TokenBought' event: [buyer=${buyer}, seller=${seller}, tokenId=${tokenId.toString()}, tokenAmount=${tokenAmount.toString()}, price=${price.toString()}]`,
+      );
       handleBuy(buyer, seller, tokenId, tokenAmount, price).catch(() =>
-        console.log(
+        console.warn(
           `could not handle buy event for tokenId: ${tokenId.toString()}`,
         ),
       );
@@ -87,8 +95,11 @@ export const startWorkers = () => {
   contract.on(
     contract.filters.Redeem(),
     (owner: string, tokenId: BigNumber, amount: BigNumber) => {
+      console.info(
+        `Received 'Redeem' event: [owner=${owner}, tokenId=${tokenId.toString()}, amount=${amount.toString()}]`,
+      );
       handleRedeem(owner, tokenId, amount).catch(() =>
-        console.log(
+        console.warn(
           `could not handle redeem event for tokenId: ${tokenId.toString()}`,
         ),
       );
@@ -100,8 +111,11 @@ export const startWorkers = () => {
   contract.on(
     contract.filters.RoleGranted(),
     (role: string, account: string, sender: string) => {
+      console.info(
+        `Received 'RoleGranted' event: [role=${role}, account=${account}, sender=${sender}]`,
+      );
       handleGrantRole(role, account, sender).catch(() =>
-        console.log(
+        console.warn(
           `could not handle grant role ${role} event for address: ${account}`,
         ),
       );
@@ -113,13 +127,17 @@ export const startWorkers = () => {
   contract.on(
     contract.filters.RoleRevoked(),
     (role: string, account: string, sender: string) => {
-      handleRevokeRole(role, account, sender).catch(e => {
-        console.log(e);
-        console.log(
+      console.info(
+        `Received 'RoleRevoked' event: [role=${role}, account=${account}, sender=${sender}]`,
+      );
+      handleRevokeRole(role, account, sender).catch(() => {
+        console.warn(
           `could not handle revoke role ${role} event for address: ${account}`,
         );
       });
       return;
     },
   );
+
+  console.info(`Started listening to events at ${recMarketplaceAddress}`);
 };

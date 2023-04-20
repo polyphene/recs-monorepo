@@ -52,7 +52,7 @@ export const handleList = async (
       create: listedData,
     })
     .catch(() => {
-      console.log(
+      console.warn(
         `could not create LIST event for token: ${tokenId.toString()}`,
       );
     });
@@ -107,7 +107,7 @@ export const handleBuy = async (
       create: boughtData,
     })
     .catch(() => {
-      console.log(
+      console.warn(
         `could not create BUY event for token: ${tokenId.toString()}`,
       );
     });

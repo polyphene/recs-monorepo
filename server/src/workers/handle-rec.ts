@@ -40,7 +40,7 @@ export const handleMint = async (
       },
     })
     .catch(() => {
-      console.log(`could not update metadata.minted to true for cid: ${uri}`);
+      console.warn(`could not update metadata.minted to true for cid: ${uri}`);
     });
 
   const mintData = {
@@ -73,7 +73,7 @@ export const handleMint = async (
       create: mintData,
     })
     .catch(() => {
-      console.log(`could not create MINT event for token: ${id.toString()}`);
+      console.warn(`could not create MINT event for token: ${id.toString()}`);
     });
 };
 
@@ -126,7 +126,7 @@ export const handleTransfer = async (
       create: transferData,
     })
     .catch(() => {
-      console.log(
+      console.warn(
         `could not create TRANSFER event for token: ${id.toString()}`,
       );
     });
@@ -177,7 +177,7 @@ export const handleRedeem = async (
       create: redeemData,
     })
     .catch(() => {
-      console.log(
+      console.warn(
         `could not create REDEEM event for token: ${tokenId.toString()}`,
       );
     });
