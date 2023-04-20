@@ -15,6 +15,7 @@ export function NoWallet() {
 
   useEffect(() => {
     if (error !== null) {
+      // @ts-ignore
       toast.error(`Error while connecting to wallet.`, { theme });
     }
   }, [error?.message, error, theme]);

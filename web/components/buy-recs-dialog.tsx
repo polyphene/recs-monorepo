@@ -25,14 +25,17 @@ export function BuyRecs({ id, seller, price }) {
   const [open, setOpen] = useState(false);
   const [volume, setVolume] = useState(null);
 
-  const { config } = usePrepareContractWrite({
-    ...recMarketplace,
-    functionName: 'buy',
-    args: [id, seller, volume ?? 0],
-    overrides: {
-      value: price * volume,
-    },
-  });
+  const { config } = usePrepareContractWrite(
+    // @ts-ignore
+    {
+      ...recMarketplace,
+      functionName: 'buy',
+      args: [id, seller, volume ?? 0],
+      overrides: {
+        value: price * volume,
+      },
+    }
+  );
 
   const { writeAsync } = useContractWrite({
     ...config,

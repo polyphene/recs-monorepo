@@ -27,15 +27,19 @@ export function SiteHeader() {
 
   useEffect(() => {
     if (error !== null) {
+      // @ts-ignore
       toast.error(`Error while connecting to wallet.`, { theme });
     }
   }, [error?.message, error, theme]);
 
-  const { data: isAdmin } = useContractRead({
-    ...recMarketplace,
-    functionName: 'hasRole',
-    args: [ADMIN_ROLE, address],
-  });
+  const { data: isAdmin } = useContractRead(
+    // @ts-ignore
+    {
+      ...recMarketplace,
+      functionName: 'hasRole',
+      args: [ADMIN_ROLE, address],
+    }
+  );
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-b-slate-200 bg-white dark:border-b-slate-700 dark:bg-slate-900">

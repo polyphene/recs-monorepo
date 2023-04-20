@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BigNumber } from 'ethers';
 import { useAccount, useContractRead, useContractReads } from 'wagmi';
 
 import recMarketplace from '@/config/rec-marketplace';
@@ -15,21 +16,25 @@ function MintedRecRow({ id }) {
     isLoading: metadataIsLoading,
   } = useContractReads({
     contracts: [
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'redeemedSupplyOf',
         args: [id],
       },
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'supplyOf',
         args: [id],
       },
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'redemptionStatementOf',
         args: [id],
       },
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'minterOf',
@@ -55,8 +60,8 @@ function MintedRecRow({ id }) {
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
         {data[2] ? (
-          data[2]
-        ) : data[0].eq(data[1]) ? (
+          <>data[2]</>
+        ) : (data[0] as BigNumber).eq(data[1] as BigNumber) ? (
           <div className="flex w-full items-center space-x-2">
             <Input
               id="statement-cid"
@@ -67,7 +72,7 @@ function MintedRecRow({ id }) {
             <Button>Attach</Button>
           </div>
         ) : (
-          '❌'
+          <div>❌</div>
         )}
       </td>
     </tr>
@@ -79,11 +84,14 @@ export function MintedRecsTable() {
     data: nextId,
     isLoading,
     isError,
-  } = useContractRead({
-    ...recMarketplace,
-    functionName: 'nextId',
-    watch: true,
-  });
+  } = useContractRead(
+    // @ts-ignore
+    {
+      ...recMarketplace,
+      functionName: 'nextId',
+      watch: true,
+    }
+  );
 
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Couldn&apos;t fetch next REC id</p>;
@@ -108,9 +116,12 @@ export function MintedRecsTable() {
         </tr>
       </thead>
       <tbody>
-        {[...Array(Number(nextId)).keys()].map((e) => {
-          return <MintedRecRow id={e} key={e} />;
-        })}
+        {
+          // @ts-ignore
+          [...Array(Number(nextId)).keys()].map((e) => {
+            return <MintedRecRow id={e} key={e} />;
+          })
+        }
       </tbody>
     </table>
   );

@@ -20,16 +20,19 @@ function MyRecRow({ id, isRedeemer }) {
     isLoading: metadataIsLoading,
   } = useContractReads({
     contracts: [
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'supplyOf',
         args: [id],
       },
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'balanceOf',
         args: [address, id],
       },
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'amountRedeemed',
@@ -39,11 +42,14 @@ function MyRecRow({ id, isRedeemer }) {
     watch: true,
   });
 
-  const { config } = usePrepareContractWrite({
-    ...recMarketplace,
-    functionName: 'redeem',
-    args: [id, metadata?.[1] ?? 0],
-  });
+  const { config } = usePrepareContractWrite(
+    // @ts-ignore
+    {
+      ...recMarketplace,
+      functionName: 'redeem',
+      args: [id, metadata?.[1] ?? 0],
+    }
+  );
   const { writeAsync } = useContractWrite(config);
 
   if (
@@ -103,10 +109,13 @@ export function MyRecsTable({ isRedeemer }) {
     data: nextId,
     isLoading,
     isError,
-  } = useContractRead({
-    ...recMarketplace,
-    functionName: 'nextId',
-  });
+  } = useContractRead(
+    // @ts-ignore
+    {
+      ...recMarketplace,
+      functionName: 'nextId',
+    }
+  );
 
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Couldn&apos;t fetch next REC id</p>;
@@ -138,9 +147,12 @@ export function MyRecsTable({ isRedeemer }) {
         </tr>
       </thead>
       <tbody>
-        {[...Array(Number(nextId)).keys()].map((e) => {
-          return <MyRecRow id={e} key={e} isRedeemer={isRedeemer} />;
-        })}
+        {
+          // @ts-ignore
+          [...Array(Number(nextId)).keys()].map((e) => {
+            return <MyRecRow id={e} key={e} isRedeemer={isRedeemer} />;
+          })
+        }
       </tbody>
     </table>
   );

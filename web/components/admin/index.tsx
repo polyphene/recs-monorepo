@@ -15,11 +15,14 @@ export const Admin = () => {
     data: isAdmin,
     isLoading: isAdminLoading,
     isError: isAdminError,
-  } = useContractRead({
-    ...recMarketplace,
-    functionName: 'hasRole',
-    args: [ADMIN_ROLE, address],
-  });
+  } = useContractRead(
+    // @ts-ignore
+    {
+      ...recMarketplace,
+      functionName: 'hasRole',
+      args: [ADMIN_ROLE, address],
+    }
+  );
 
   if (isAdminLoading || isAdminError) return <></>;
 

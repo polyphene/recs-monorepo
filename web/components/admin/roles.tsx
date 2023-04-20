@@ -52,11 +52,14 @@ function RoleRow({ address, isRedeemer, isMinter, isAdmin }) {
     { old: isRedeemer, tmp: tmpIsRedeemer }
   );
 
-  const { config } = usePrepareContractWrite({
-    ...recMarketplace,
-    functionName: update?.fn,
-    args: [update?.role, address],
-  });
+  const { config } = usePrepareContractWrite(
+    // @ts-ignore
+    {
+      ...recMarketplace,
+      functionName: update?.fn,
+      args: [update?.role, address],
+    }
+  );
 
   const { writeAsync } = useContractWrite(config);
 

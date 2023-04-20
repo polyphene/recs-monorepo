@@ -26,11 +26,14 @@ export function ListRecs({ id }) {
   const [volume, setVolume] = useState(null);
   const [unitPrice, setUnitPrice] = useState(null);
 
-  const { config } = usePrepareContractWrite({
-    ...recMarketplace,
-    functionName: 'list',
-    args: [id, volume ?? 0, unitPrice ?? 0],
-  });
+  const { config } = usePrepareContractWrite(
+    // @ts-ignore
+    {
+      ...recMarketplace,
+      functionName: 'list',
+      args: [id, volume ?? 0, unitPrice ?? 0],
+    }
+  );
 
   const { writeAsync } = useContractWrite({
     ...config,

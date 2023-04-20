@@ -32,11 +32,14 @@ export function SetRole() {
   const [address, setAddress] = useState('');
   const [role, setRole] = useState('');
 
-  const { config } = usePrepareContractWrite({
-    ...recMarketplace,
-    functionName: 'grantRole',
-    args: [role, address],
-  });
+  const { config } = usePrepareContractWrite(
+    // @ts-ignore
+    {
+      ...recMarketplace,
+      functionName: 'grantRole',
+      args: [role, address],
+    }
+  );
   const { writeAsync } = useContractWrite({
     ...config,
     onSettled: (data, error) => {

@@ -19,11 +19,13 @@ export function Dashboard() {
     isError: isRoleDataError,
   } = useContractReads({
     contracts: [
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'hasRole',
         args: [MINTER_ROLE, address],
       },
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'hasRole',

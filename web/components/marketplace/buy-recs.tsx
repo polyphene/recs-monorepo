@@ -36,16 +36,19 @@ function BuyRecsRow({ listing }: { listing: TokenListing }) {
     boolean;
   } = useContractReads({
     contracts: [
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'balanceOf',
         args: [listing.seller, listing.tokenId],
       },
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'uri',
         args: [listing.tokenId],
       },
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'tokenSupplyListed',
@@ -132,11 +135,14 @@ export function BuyRecsTable() {
     data: Array<TokenListing>;
     isLoading: boolean;
     isError: boolean;
-  } = useContractRead({
-    ...recMarketplace,
-    functionName: 'currentTokenListings',
-    watch: true,
-  });
+  } = useContractRead(
+    // @ts-ignore
+    {
+      ...recMarketplace,
+      functionName: 'currentTokenListings',
+      watch: true,
+    }
+  );
 
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Couldn&apos;t fetch next REC id</p>;

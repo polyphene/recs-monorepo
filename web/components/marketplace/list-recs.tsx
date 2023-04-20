@@ -30,26 +30,31 @@ function ListRecsRow({ id }) {
     boolean;
   } = useContractReads({
     contracts: [
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'supplyOf',
         args: [id],
       },
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'balanceOf',
         args: [address, id],
       },
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'amountRedeemed',
         args: [address, id],
       },
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'uri',
         args: [id],
       },
+      // @ts-ignore
       {
         ...recMarketplace,
         functionName: 'tokenSupplyListed',
@@ -133,11 +138,14 @@ export function ListRecsTable() {
     data: nextId,
     isLoading,
     isError,
-  } = useContractRead({
-    ...recMarketplace,
-    functionName: 'nextId',
-    watch: true,
-  });
+  } = useContractRead(
+    // @ts-ignore
+    {
+      ...recMarketplace,
+      functionName: 'nextId',
+      watch: true,
+    }
+  );
 
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Couldn&apos;t fetch next REC id</p>;
@@ -180,9 +188,12 @@ export function ListRecsTable() {
         </tr>
       </thead>
       <tbody>
-        {[...Array(Number(nextId)).keys()].map((e) => {
-          return <ListRecsRow id={e} key={e} />;
-        })}
+        {
+          // @ts-ignore
+          [...Array(Number(nextId)).keys()].map((e) => {
+            return <ListRecsRow id={e} key={e} />;
+          })
+        }
       </tbody>
     </table>
   );

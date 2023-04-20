@@ -30,17 +30,20 @@ export function MintRECs({ cid, volume }) {
   const [open, setOpen] = useState(false);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
 
-  const { config } = usePrepareContractWrite({
-    ...recMarketplace,
-    functionName: 'mintAndAllocate',
-    args: [
-      cid,
-      volume,
-      allocations.map((a) => a.address),
-      allocations.map((a) => a.amount),
-      allocations.map((a) => a.redeem),
-    ],
-  });
+  const { config } = usePrepareContractWrite(
+    // @ts-ignore
+    {
+      ...recMarketplace,
+      functionName: 'mintAndAllocate',
+      args: [
+        cid,
+        volume,
+        allocations.map((a) => a.address),
+        allocations.map((a) => a.amount),
+        allocations.map((a) => a.redeem),
+      ],
+    }
+  );
   const { writeAsync } = useContractWrite({
     ...config,
     onSettled: (data, error) => {
