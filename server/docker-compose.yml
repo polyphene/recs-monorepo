@@ -31,8 +31,8 @@ services:
       - ETH_HTTP_URI=https://api.hyperspace.node.glif.io/rpc/v1
       # It is recommended to deploy a new rec marketplace contract for your developer environment.
       # See https://github.com/polyphene/recs-contract
-      - REC_MARKETPLACE_ADDRESS=0x83647a728c14238a8DfaF51144f3aa1DDc73ee34
-      - DEPLOYMENT_BLOCK_HEIGHT=230596
+      - REC_MARKETPLACE_ADDRESS=0x0caa61BCab936D7B44f7A2d7A136ffE167F82835
+      - DEPLOYMENT_BLOCK_HEIGHT=270820
     ports:
       # GraphQL GUI
       - "4000:4000"
