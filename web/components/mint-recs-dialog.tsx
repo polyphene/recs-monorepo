@@ -59,7 +59,7 @@ export function MintRECs({ cid, volume }) {
         <DialogHeader>
           <DialogTitle>Mint</DialogTitle>
           <DialogDescription>
-            Set for your RECS. Click mint when you're done.
+            Set for your RECS. Click mint when you&apos;re done.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

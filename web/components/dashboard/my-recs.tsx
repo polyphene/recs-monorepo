@@ -109,7 +109,7 @@ export function MyRecsTable({ isRedeemer }) {
   });
 
   if (isLoading) return <p>Loading...</p>;
-  if (isError) return <p>Couldn't fetch next REC id</p>;
+  if (isError) return <p>Couldn&apos;t fetch next REC id</p>;
   if (nextId.toString() === '0') return <p>No RECs owned</p>;
 
   return (

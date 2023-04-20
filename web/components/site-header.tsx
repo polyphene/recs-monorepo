@@ -29,7 +29,7 @@ export function SiteHeader() {
     if (error !== null) {
       toast.error(`Error while connecting to wallet.`, { theme });
     }
-  }, [error?.message]);
+  }, [error?.message, error, theme]);
 
   const { data: isAdmin } = useContractRead({
     ...recMarketplace,
