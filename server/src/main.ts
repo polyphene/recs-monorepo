@@ -15,7 +15,7 @@ async function main() {
   await initRoles();
 
   // Seed role table
-  //await constructRolesTable();
+  await constructRolesTable();
 
   const yoga = createYoga({ schema, context: createContext, plugins: [] });
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
