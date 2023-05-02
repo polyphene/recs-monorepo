@@ -24,10 +24,25 @@ export const handleList = async (
 
   const prisma = new PrismaClient();
 
+  const collection = await prisma.collection
+    .findUnique({
+      where: {
+        filecoinTokenId: tokenId.toString(),
+      },
+    })
+    .catch(() =>
+      console.error(
+        `could not look for collection with filecoin token Id: ${tokenId.toString()}`,
+      ),
+    );
+  if (!collection) {
+    throw new Error(
+      `no collection object in database for filecoin token Id: ${tokenId.toString()}`,
+    );
+  }
+
   const listedData = {
     tokenId: tokenId.toString(),
-    // Disabling eslint rule which poses problem at assignment (prisma issue here)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
     eventType: EventType.LIST,
     data: {
       seller,
@@ -38,6 +53,7 @@ export const handleList = async (
     blockHeight: blockHeight.toString(),
     transactionHash: tokenListed[0].transactionHash,
     logIndex: tokenListed[0].logIndex,
+    collectionId: collection.id,
   };
   await prisma.event
     .upsert({
@@ -52,7 +68,7 @@ export const handleList = async (
       create: listedData,
     })
     .catch(() => {
-      console.warn(
+      console.error(
         `could not create LIST event for token: ${tokenId.toString()}`,
       );
     });
@@ -78,10 +94,25 @@ export const handleBuy = async (
 
   const prisma = new PrismaClient();
 
+  const collection = await prisma.collection
+    .findUnique({
+      where: {
+        filecoinTokenId: tokenId.toString(),
+      },
+    })
+    .catch(() =>
+      console.error(
+        `could not look for collection with filecoin token Id: ${tokenId.toString()}`,
+      ),
+    );
+  if (!collection) {
+    throw new Error(
+      `no collection object in database for filecoin token Id: ${tokenId.toString()}`,
+    );
+  }
+
   const boughtData = {
     tokenId: tokenId.toString(),
-    // Disabling eslint rule which poses problem at assignment (prisma issue here)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
     eventType: EventType.BUY,
     data: {
       buyer,
@@ -93,6 +124,7 @@ export const handleBuy = async (
     blockHeight: blockHeight.toString(),
     transactionHash: tokenBought[0].transactionHash,
     logIndex: tokenBought[0].logIndex,
+    collectionId: collection.id,
   };
   await prisma.event
     .upsert({
@@ -107,7 +139,7 @@ export const handleBuy = async (
       create: boughtData,
     })
     .catch(() => {
-      console.warn(
+      console.error(
         `could not create BUY event for token: ${tokenId.toString()}`,
       );
     });

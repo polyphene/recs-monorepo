@@ -43,10 +43,45 @@ export const getDeploymentBlockHeight = (): string => {
   return env;
 };
 
+/*
+ * Energy Wef Foundation related env
+ */
+export const getEwfHttpUriEnv = (): string => {
+  const env = process.env.EWF_HTTP_URI;
+  if (env === undefined) {
+    throw new Error('EWF_HTTP_URI environment variable is not set');
+  }
+
+  return env;
+};
+
+export const getRegistryExtendedAddressEnv = (): string => {
+  const env = process.env.REGISTRY_EXTENDED_ADDRESS;
+  if (env === undefined) {
+    throw new Error(
+      'REGISTRY_EXTENDED_ADDRESS environment variable is not set',
+    );
+  }
+
+  return env;
+};
+
+export const getBatchFactoryAddressEnv = (): string => {
+  const env = process.env.BATCH_FACTORY_ADDRESS;
+  if (env === undefined) {
+    throw new Error('BATCH_FACTORY_ADDRESS environment variable is not set');
+  }
+
+  return env;
+};
+
 export const loadEnv = (): void => {
   getPortEnv();
   getRecMarketplaceAddressEnv();
   getEthWssUriEnv();
   getEthHttpUriEnv();
   getDeploymentBlockHeight();
+  getEwfHttpUriEnv();
+  getRegistryExtendedAddressEnv();
+  getBatchFactoryAddressEnv();
 };

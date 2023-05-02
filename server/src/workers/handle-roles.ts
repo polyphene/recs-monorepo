@@ -37,7 +37,7 @@ export const handleGrantRole = async (
       },
     })
     .catch(() => {
-      console.warn(
+      console.error(
         `could not upsert addressRoles '${getRoleJsonKey(
           role,
         )}' to true for address: ${account}`,
@@ -46,8 +46,6 @@ export const handleGrantRole = async (
 
   const roleGrantedData = {
     tokenId: null,
-    // Disabling eslint rule which poses problem at assignment (prisma issue here)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
     eventType: EventType.GRANT_ROLE,
     data: {
       role,
@@ -71,7 +69,7 @@ export const handleGrantRole = async (
       create: roleGrantedData,
     })
     .catch(() => {
-      console.warn(
+      console.error(
         `could not create GRANT_ROLE ${role} event for account: ${account}`,
       );
     });
@@ -109,7 +107,7 @@ export const handleRevokeRole = async (
       },
     })
     .catch(() => {
-      console.warn(
+      console.error(
         `could not upsert addressRoles '${getRoleJsonKey(
           role,
         )}' to true for address: ${account}`,
@@ -118,8 +116,6 @@ export const handleRevokeRole = async (
 
   const roleRevokedData = {
     tokenId: null,
-    // Disabling eslint rule which poses problem at assignment (prisma issue here)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
     eventType: EventType.REVOKE_ROLE,
     data: {
       role,
@@ -143,7 +139,7 @@ export const handleRevokeRole = async (
       create: roleRevokedData,
     })
     .catch(() => {
-      console.warn(
+      console.error(
         `could not create GRANT_ROLE ${role} event for account: ${account}`,
       );
     });

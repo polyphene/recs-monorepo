@@ -1,10 +1,25 @@
 -- CreateEnum
 CREATE TYPE "EventType" AS ENUM ('MINT', 'TRANSFER', 'LIST', 'BUY', 'REDEEM', 'GRANT_ROLE', 'REVOKE_ROLE');
 
+-- CreateEnum
+CREATE TYPE "Chain" AS ENUM ('FILECOIN', 'ENERGY_WEB');
+
+-- CreateTable
+CREATE TABLE "Collection" (
+    "id" SERIAL NOT NULL,
+    "filecoinTokenId" TEXT,
+    "energyWebTokenId" TEXT,
+    "metadataId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Collection_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateTable
 CREATE TABLE "Metadata" (
     "id" SERIAL NOT NULL,
     "cid" TEXT NOT NULL,
+    "collectionId" INTEGER,
     "contractId" TEXT NOT NULL,
     "productType" TEXT NOT NULL,
     "label" TEXT NOT NULL,
@@ -28,6 +43,8 @@ CREATE TABLE "Metadata" (
 -- CreateTable
 CREATE TABLE "Event" (
     "id" SERIAL NOT NULL,
+    "collectionId" INTEGER,
+    "chain" "Chain" NOT NULL DEFAULT 'FILECOIN',
     "tokenId" TEXT,
     "eventType" "EventType" NOT NULL,
     "data" JSONB NOT NULL,
@@ -52,10 +69,28 @@ CREATE TABLE "AddressRoles" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Collection_filecoinTokenId_key" ON "Collection"("filecoinTokenId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Collection_energyWebTokenId_key" ON "Collection"("energyWebTokenId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Collection_metadataId_key" ON "Collection"("metadataId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Metadata_cid_key" ON "Metadata"("cid");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Metadata_collectionId_key" ON "Metadata"("collectionId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Event_blockHeight_transactionHash_logIndex_key" ON "Event"("blockHeight", "transactionHash", "logIndex");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AddressRoles_address_key" ON "AddressRoles"("address");
+
+-- AddForeignKey
+ALTER TABLE "Collection" ADD CONSTRAINT "Collection_metadataId_fkey" FOREIGN KEY ("metadataId") REFERENCES "Metadata"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Event" ADD CONSTRAINT "Event_collectionId_fkey" FOREIGN KEY ("collectionId") REFERENCES "Collection"("id") ON DELETE SET NULL ON UPDATE CASCADE;

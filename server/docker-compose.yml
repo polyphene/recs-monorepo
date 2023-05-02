@@ -27,16 +27,19 @@ services:
       - PORT=4000
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/recs?schema=recs&connect_timeout=3000
-      - ETH_WSS_URI=wss://wss.hyperspace.node.glif.io/apigw/lotus/rpc/v1
-      - ETH_HTTP_URI=https://api.hyperspace.node.glif.io/rpc/v1
+      - ETH_WSS_URI=wss://wss.hyperspace.node.glif.io/apigw/lotus/rpc/v0
+      - ETH_HTTP_URI=https://api.hyperspace.node.glif.io/
       # It is recommended to deploy a new rec marketplace contract for your developer environment.
       # See https://github.com/polyphene/recs-contract
-      - REC_MARKETPLACE_ADDRESS=0x0caa61BCab936D7B44f7A2d7A136ffE167F82835
-      - DEPLOYMENT_BLOCK_HEIGHT=270820
+      - REC_MARKETPLACE_ADDRESS=0x6B8113878282838535988B1e9AE36F9AD3B2eB6d
+      - DEPLOYMENT_BLOCK_HEIGHT=306310
+      # Energy Web foundation related env
+      - EWF_HTTP_URI=https://rpc.energyweb.org
+      - REGISTRY_EXTENDED_ADDRESS=0x5651a7A38753A9692B7740CCeCA3824a4d33aEFb
+      - BATCH_FACTORY_ADDRESS=0x2248a8e53c8cf533aeef2369fff9dc8c036c8900
     ports:
       # GraphQL GUI
       - "4000:4000"
-      # Prisma GUI (to run with
     depends_on:
       postgres:
         condition: service_healthy

@@ -30,7 +30,7 @@ export const handleMint = async (
 
   // Update minted status of metadata
   // TODO would be ideal to do upsert here in case someone is not using our app to mint (low probability)
-  await prisma.metadata
+  const metadata = await prisma.metadata
     .update({
       where: {
         cid: uri,
@@ -40,13 +40,40 @@ export const handleMint = async (
       },
     })
     .catch(() => {
-      console.warn(`could not update metadata.minted to true for cid: ${uri}`);
+      console.error(`could not update metadata.minted to true for cid: ${uri}`);
     });
+
+  if (!metadata) {
+    throw new Error(`no metadata object in database for: ${uri}`);
+  }
+
+  // Set upsert a collection for this token Id
+  const collection = await prisma.collection
+    .upsert({
+      where: {
+        metadataId: metadata.id,
+      },
+      create: {
+        filecoinTokenId: id.toString(),
+        metadataId: metadata.id,
+      },
+      update: {
+        filecoinTokenId: id.toString(),
+      },
+    })
+    .catch(() => {
+      console.error(
+        `could not upsert collection for metadata Id: ${metadata.id}`,
+      );
+    });
+  if (!collection) {
+    throw new Error(
+      `no collection object in database for metadata Id: ${metadata.id}`,
+    );
+  }
 
   const mintData = {
     tokenId: id.toString(),
-    // Disabling eslint rule which poses problem at assignment (prisma issue here)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
     eventType: EventType.MINT,
     data: {
       operator,
@@ -58,6 +85,7 @@ export const handleMint = async (
     blockHeight: blockHeight.toString(),
     transactionHash: tokenMinted[0].transactionHash,
     logIndex: tokenMinted[0].logIndex,
+    collectionId: collection.id,
   };
   // Upsert ensures that we are only having one event record per event
   await prisma.event
@@ -73,7 +101,7 @@ export const handleMint = async (
       create: mintData,
     })
     .catch(() => {
-      console.warn(`could not create MINT event for token: ${id.toString()}`);
+      console.error(`could not create MINT event for token: ${id.toString()}`);
     });
 };
 
@@ -97,10 +125,25 @@ export const handleTransfer = async (
 
   const prisma = new PrismaClient();
 
+  const collection = await prisma.collection
+    .findUnique({
+      where: {
+        filecoinTokenId: id.toString(),
+      },
+    })
+    .catch(() =>
+      console.error(
+        `could not look for collection with filecoin token Id: ${id.toString()}`,
+      ),
+    );
+  if (!collection) {
+    throw new Error(
+      `no collection object in database for filecoin token Id: ${id.toString()}`,
+    );
+  }
+
   const transferData = {
     tokenId: id.toString(),
-    // Disabling eslint rule which poses problem at assignment (prisma issue here)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
     eventType: EventType.TRANSFER,
     data: {
       operator,
@@ -112,6 +155,7 @@ export const handleTransfer = async (
     blockHeight: blockHeight.toString(),
     transactionHash: tokenTransfered[0].transactionHash,
     logIndex: tokenTransfered[0].logIndex,
+    collectionId: collection.id,
   };
   await prisma.event
     .upsert({
@@ -126,7 +170,7 @@ export const handleTransfer = async (
       create: transferData,
     })
     .catch(() => {
-      console.warn(
+      console.error(
         `could not create TRANSFER event for token: ${id.toString()}`,
       );
     });
@@ -150,10 +194,25 @@ export const handleRedeem = async (
 
   const prisma = new PrismaClient();
 
+  const collection = await prisma.collection
+    .findUnique({
+      where: {
+        filecoinTokenId: tokenId.toString(),
+      },
+    })
+    .catch(() =>
+      console.error(
+        `could not look for collection with filecoin token Id: ${tokenId.toString()}`,
+      ),
+    );
+  if (!collection) {
+    throw new Error(
+      `no collection object in database for filecoin token Id: ${tokenId.toString()}`,
+    );
+  }
+
   const redeemData = {
     tokenId: tokenId.toString(),
-    // Disabling eslint rule which poses problem at assignment (prisma issue here)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
     eventType: EventType.REDEEM,
     data: {
       owner,
@@ -163,6 +222,7 @@ export const handleRedeem = async (
     blockHeight: blockHeight.toString(),
     transactionHash: tokenRedeemed[0].transactionHash,
     logIndex: tokenRedeemed[0].logIndex,
+    collectionId: collection.id,
   };
   await prisma.event
     .upsert({
@@ -177,7 +237,7 @@ export const handleRedeem = async (
       create: redeemData,
     })
     .catch(() => {
-      console.warn(
+      console.error(
         `could not create REDEEM event for token: ${tokenId.toString()}`,
       );
     });

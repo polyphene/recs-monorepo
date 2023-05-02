@@ -1,6 +1,14 @@
-import { getEthHttpUriEnv, getRecMarketplaceAddressEnv } from '../utils/env';
+import {
+  getBatchFactoryAddressEnv,
+  getEthHttpUriEnv,
+  getEwfHttpUriEnv,
+  getRecMarketplaceAddressEnv,
+  getRegistryExtendedAddressEnv,
+} from '../utils/env';
 import { ethers } from 'ethers';
 import recMarketplaceConfig from '../config/rec-marketplace';
+import registryExtendedConfig from '../config/registry-extended';
+import batchFactoryConfig from '../config/batch-factory';
 
 export const getRecMarketplaceContractInstance = () => {
   const recMarketplaceAddress = getRecMarketplaceAddressEnv();
@@ -11,6 +19,25 @@ export const getRecMarketplaceContractInstance = () => {
     recMarketplaceConfig.abi,
     ethProvider,
   );
+};
+
+export const getEwfContractsInstances = () => {
+  const registryExtendedAddress = getRegistryExtendedAddressEnv();
+  const batchFactoryAddress = getBatchFactoryAddressEnv();
+  const ewfProvider = ethers.getDefaultProvider(getEwfHttpUriEnv());
+
+  return {
+    registryExtendedContract: new ethers.Contract(
+      registryExtendedAddress,
+      registryExtendedConfig.abi,
+      ewfProvider,
+    ),
+    batchFactoryContract: new ethers.Contract(
+      batchFactoryAddress,
+      batchFactoryConfig.abi,
+      ewfProvider,
+    ),
+  };
 };
 
 export const getCurrentBlockHeight = () => {

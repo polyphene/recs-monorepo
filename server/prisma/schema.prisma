@@ -7,9 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Collection {
+  id               Int      @id @default(autoincrement())
+  // Store as string because uint256
+  filecoinTokenId  String?  @unique
+  energyWebTokenId String?  @unique
+  events           Event[]
+  metadata         Metadata @relation(fields: [metadataId], references: [id])
+  metadataId       Int      @unique
+  createdAt        DateTime @default(now())
+}
+
 model Metadata {
-  id             Int      @id @default(autoincrement())
-  cid            String   @unique
+  id             Int         @id @default(autoincrement())
+  cid            String      @unique
+  collectionId   Int?        @unique
+  collection     Collection?
   contractId     String
   productType    String
   label          String
@@ -25,11 +38,14 @@ model Metadata {
   volumeMWh      Int
   createdBy      String
   minted         Boolean
-  createdAt      DateTime @default(now())
+  createdAt      DateTime    @default(now())
 }
 
 model Event {
-  id              Int       @id @default(autoincrement())
+  id              Int         @id @default(autoincrement())
+  collectionId    Int?
+  collection      Collection? @relation(fields: [collectionId], references: [id])
+  chain           Chain       @default(FILECOIN)
   // Store as string because uint256
   tokenId         String?
   eventType       EventType
@@ -37,7 +53,7 @@ model Event {
   blockHeight     String
   transactionHash String
   logIndex        Int
-  createdAt       DateTime  @default(now())
+  createdAt       DateTime    @default(now())
 
   @@unique([blockHeight, transactionHash, logIndex])
 }
@@ -50,6 +66,11 @@ enum EventType {
   REDEEM
   GRANT_ROLE
   REVOKE_ROLE
+}
+
+enum Chain {
+  FILECOIN
+  ENERGY_WEB
 }
 
 model AddressRoles {

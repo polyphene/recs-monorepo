@@ -6,8 +6,9 @@ import {
   initRoles,
 } from '../utils/web3-utils';
 import { isObjKey } from '../utils';
-import { EventType, PrismaClient } from '@prisma/client';
+import { Chain, EventType, PrismaClient } from '@prisma/client';
 import { getDeploymentBlockHeight } from '../utils/env';
+import { Event } from '@ethersproject/contracts';
 
 type AccountRolesDictionary = {
   [key: string]: {
@@ -22,16 +23,24 @@ const seedRoles = async (fromBlock: number) => {
   const recMarketplace = getRecMarketplaceContractInstance();
 
   // Fetch RoleGranted events from the chain
-  const roleGrantedEvents = await recMarketplace.queryFilter(
-    recMarketplace.filters.RoleGranted(),
-    fromBlock,
-  );
+  const roleGrantedEvents = await recMarketplace
+    .queryFilter(recMarketplace.filters.RoleGranted(), fromBlock)
+    .catch((err: Error) => {
+      console.error(`Error while fetching Role Granted events: ${err.message}`);
+      return [] as Event[];
+    });
 
   // Fetch RoleRevoked events from the chain
-  const roleRevokedEvents = await recMarketplace.queryFilter(
-    recMarketplace.filters.RoleRevoked(),
-    fromBlock,
-  );
+  const roleRevokedEvents = await recMarketplace
+    .queryFilter(recMarketplace.filters.RoleRevoked(), fromBlock)
+    .catch((err: Error) => {
+      console.error(`Error while fetching Role Revoked events: ${err.message}`);
+      return [] as Event[];
+    });
+
+  if (roleGrantedEvents.length === 0 && roleRevokedEvents.length === 0) {
+    return;
+  }
 
   // Merging the events returned
   const events = [...roleGrantedEvents, ...roleRevokedEvents].sort(
@@ -156,8 +165,13 @@ export const constructRolesTable = async () => {
       _max: {
         id: true,
       },
+      where: {
+        chain: Chain.FILECOIN,
+      },
     })
-    .catch(() => console.log("couldn't find highest id in Event table"));
+    .catch((err: Error) =>
+      console.error(`couldn't find highest id in Event table: ${err.message}`),
+    );
 
   // Initialize block to start off as the one from the deployment of the smart contract
   let fromBlock = getDeploymentBlockHeight();
@@ -171,9 +185,11 @@ export const constructRolesTable = async () => {
           id: aggregate._max.id,
         },
       })
-      .catch(() =>
-        console.log(
-          `couldn't find event data based on id ${aggregate?._max.id || ''}`,
+      .catch((err: Error) =>
+        console.error(
+          `couldn't find event data based on id ${aggregate?._max.id || ''}: ${
+            err.message
+          }`,
         ),
       );
 
