@@ -2,8 +2,7 @@ import { Chain, EventType, PrismaClient, TransactionType } from '@prisma/client'
 import { decodeClaimV1, decodeClaimV2, decodeClaimV3, getEwfContractsInstances } from '../utils/web3-utils';
 import { BigNumber, constants, Event } from 'ethers';
 import type { Prisma } from '.prisma/client';
-import { store } from '../utils/storage';
-import { CIDString } from 'web3.storage';
+import v8 from 'v8';
 
 /*
  * Energy Web Chain intersected data
@@ -163,6 +162,7 @@ const processEvents = async (fromBlock: number) => {
     });
 
     console.info(`fetched ${dbClaimEventInputs.length} CLAIM events from EWC`);
+    console.info(v8.getHeapStatistics().heap_size_limit / (1024 * 1024));
 
     const dbEventInputs = [...dbMintEventInputs, ...dbRedemptionEventInputs, ...dbClaimEventInputs].sort(
         (a, b) => parseInt(a.blockHeight, 10) - parseInt(b.blockHeight, 1),
@@ -173,6 +173,7 @@ const processEvents = async (fromBlock: number) => {
         return;
     }
 
+    console.info('trying to test those test those test those test');
     const dbEvents = await Promise.all(
         dbEventInputs.slice(0, dbEventInputs.length - 1).map(data => {
             return prisma.event.create({
