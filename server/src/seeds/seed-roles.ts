@@ -145,9 +145,7 @@ const seedRoles = async (prisma: PrismaClient, fromBlock: number) => {
     console.info('successfully seeded roles database!');
 };
 
-export const constructRolesTable = async () => {
-    const prisma = new PrismaClient();
-
+export const constructRolesTable = async (prisma: PrismaClient) => {
     const aggregate = await prisma.event
         .aggregate({
             _max: {
@@ -183,6 +181,4 @@ export const constructRolesTable = async () => {
     }
 
     await seedRoles(prisma, parseInt(fromBlock, 10));
-
-    await prisma.$disconnect();
 };

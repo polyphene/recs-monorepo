@@ -1,8 +1,7 @@
 import { Chain, EventType, PrismaClient, TransactionType } from '@prisma/client';
 import { decodeClaimV1, decodeClaimV2, decodeClaimV3, getEwfContractsInstances } from '../utils/web3-utils';
 import { BigNumber, constants, Event } from 'ethers';
-import type { Prisma } from '.prisma/client';
-import v8 from 'v8';
+import type { Prisma, Event as PrismaEvent } from '.prisma/client';
 
 /*
  * Energy Web Chain intersected data
@@ -100,13 +99,12 @@ const processEvents = async (prisma: PrismaClient, fromBlock: number) => {
         batchFactoryContract.filters.RedemptionStatementSet(),
         fromBlock,
     );
-
-    console.info(`fetched ${redemptionSetEvents.length} REDEMPTION_SET events from EWC`);
-
     const certificateBatchMintedEvents = await batchFactoryContract.queryFilter(
         batchFactoryContract.filters.CertificateBatchMinted(),
         fromBlock,
     );
+    console.info(`fetched ${redemptionSetEvents.length} REDEMPTION_SET events from EWC`);
+
     const dbRedemptionEventInputs: Array<Prisma.EventCreateInput> = redemptionSetEvents.flatMap(e => {
         const certificateIds = certificateBatchMintedEvents.flatMap(cbme => {
             if (
@@ -159,6 +157,8 @@ const processEvents = async (prisma: PrismaClient, fromBlock: number) => {
         };
     });
 
+    console.info(`fetched ${claimSingleEvents.length} CLAIM events from EWC`);
+
     const dbEventInputs = [...dbMintEventInputs, ...dbRedemptionEventInputs, ...dbClaimEventInputs].sort(
         (a, b) => parseInt(a.blockHeight, 10) - parseInt(b.blockHeight, 1),
     );
@@ -168,13 +168,23 @@ const processEvents = async (prisma: PrismaClient, fromBlock: number) => {
         return;
     }
 
-    const dbEvents = await Promise.all(
-        dbEventInputs.slice(0, dbEventInputs.length - 1).map(data => {
-            return prisma.event.create({
-                data,
-            });
-        }),
-    );
+    const dbEvents: PrismaEvent[] = [];
+
+    const moduloQuarter = (dbEventInputs.length - 1) % 4;
+    const quarterSize = (dbEventInputs.length - 1 - moduloQuarter) / 4;
+    for (const quarterPosition of [1, 2, 3, 4]) {
+        const startIndex = (quarterPosition - 1) * quarterSize;
+        const endIndex =
+            quarterPosition === 4 ? quarterPosition * quarterSize + moduloQuarter : quarterPosition * quarterSize;
+
+        for (const data of dbEventInputs.slice(startIndex, endIndex)) {
+            dbEvents.push(
+                await prisma.event.create({
+                    data,
+                }),
+            );
+        }
+    }
 
     const latestEvent = await prisma.event.create({
         data: dbEventInputs.slice(dbEventInputs.length - 1)[0],
@@ -299,9 +309,7 @@ const processEvents = async (prisma: PrismaClient, fromBlock: number) => {
     console.info(`created ${count} collections object in the database`);
 };
 
-export const seedEwcData = async () => {
-    const prisma = new PrismaClient();
-
+export const seedEwcData = async (prisma: PrismaClient) => {
     const aggregate = await prisma.event
         .aggregate({
             _max: {
@@ -337,6 +345,4 @@ export const seedEwcData = async () => {
     }
 
     await processEvents(prisma, parseInt(fromBlock, 10) + 1);
-
-    await prisma.$disconnect();
 };

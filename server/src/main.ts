@@ -13,22 +13,24 @@ async function main() {
     // Load environment variable to ensure that they are properly set
     loadEnv();
 
+    const context = createContext();
+
     // initialize roles values from on-chain data
     await initRoles().catch((err: Error) =>
         console.error(`Error while trying to initialize Roles globals: ${err.message}`),
     );
 
     // Seed role table
-    await constructRolesTable().catch((err: Error) =>
+    await constructRolesTable(context.prisma).catch((err: Error) =>
         console.error(`Error while trying to seed roles table: ${err.message}`),
     );
 
     // Seed EWC data
-    await seedEwcData().catch((err: Error) =>
+    await seedEwcData(context.prisma).catch((err: Error) =>
         console.error(`Error while trying to seed energy web chain data: ${err.message}`),
     );
 
-    const yoga = createYoga({ schema, context: createContext, plugins: [] });
+    const yoga = createYoga({ schema, context, plugins: [] });
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     const server = createServer(yoga);
 
