@@ -1,5 +1,4 @@
 import { ApolloError, useQuery } from '@apollo/client';
-import { err } from 'pino-std-serializers';
 
 import {
   EVENTS_BY_TOKEN_ID,

@@ -7,7 +7,7 @@ import { encode } from 'multiformats/block';
 import { sha256 } from 'multiformats/hashes/sha2';
 import { CIDString, Web3Storage } from 'web3.storage';
 
-import { ADD_METADATA, METADATA_BY_CREATOR } from '@/lib/graphql';
+import { ADD_METADATA, FILTERED_METADATA } from '@/lib/graphql';
 
 export type ParsedMetadata = {
   contract_id: string;
@@ -126,7 +126,10 @@ export const store = async (
       },
     },
     refetchQueries: [
-      { query: METADATA_BY_CREATOR, variables: { broker } }, // DocumentNode object parsed with gql
+      {
+        query: FILTERED_METADATA,
+        variables: { where: { broker, minted: false } },
+      }, // DocumentNode object parsed with gql
       'MetadataByCreator', // Query name
     ],
   });
