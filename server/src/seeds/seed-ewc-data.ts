@@ -96,11 +96,15 @@ const processEvents = async (fromBlock: number) => {
         };
     });
 
+    console.info(`fetched ${dbMintEventInputs.length} MINT events from EWC`);
+
     // Fetch redemption set and certificate batch minted events, then store redemption set in db
     const redemptionSetEvents = await batchFactoryContract.queryFilter(
         batchFactoryContract.filters.RedemptionStatementSet(),
         fromBlock,
     );
+
+    console.info(`fetched ${redemptionSetEvents.length} REDEMPTION_SET events from EWC`);
 
     const certificateBatchMintedEvents = await batchFactoryContract.queryFilter(
         batchFactoryContract.filters.CertificateBatchMinted(),
@@ -158,6 +162,8 @@ const processEvents = async (fromBlock: number) => {
         };
     });
 
+    console.info(`fetched ${dbClaimEventInputs.length} CLAIM events from EWC`);
+
     const dbEventInputs = [...dbMintEventInputs, ...dbRedemptionEventInputs, ...dbClaimEventInputs].sort(
         (a, b) => parseInt(a.blockHeight, 10) - parseInt(b.blockHeight, 1),
     );
@@ -180,12 +186,6 @@ const processEvents = async (fromBlock: number) => {
     });
 
     dbEvents.push(latestEvent);
-
-    console.info(`created ${dbMintEventInputs.length} MINT events object from EWC in the database`);
-
-    console.info(`created ${dbRedemptionEventInputs.length} REDEMPTION_SET events object from EWC in the database`);
-
-    console.info(`created ${dbClaimEventInputs.length} CLAIM events object from EWC in the database`);
 
     console.info(`created a total of ${dbEvents.length} events object from EWC in the database`);
 
