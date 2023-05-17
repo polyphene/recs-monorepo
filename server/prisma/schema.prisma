@@ -8,34 +8,33 @@ datasource db {
 }
 
 model Collection {
-  id               Int      @id @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   // Store as string because uint256
-  filecoinTokenId  String?  @unique
-  energyWebTokenId String?  @unique
+  filecoinTokenId  String?   @unique
+  energyWebTokenId String?   @unique
   events           Event[]
-  metadata         Metadata @relation(fields: [metadataId], references: [id])
-  metadataId       Int      @unique
-  createdAt        DateTime @default(now())
+  metadata         Metadata? @relation(fields: [metadataId], references: [id])
+  metadataId       Int?      @unique
+  createdAt        DateTime  @default(now())
 }
 
 model Metadata {
   id             Int         @id @default(autoincrement())
   cid            String      @unique
-  collectionId   Int?        @unique
   collection     Collection?
-  contractId     String
-  productType    String
-  label          String
-  energySources  String
-  contractDate   String
-  deliveryDate   String
-  reportingStart String
-  reportingEnd   String
-  sellerName     String
-  sellerAddress  String
-  country        String
-  region         String
-  volumeMWh      Int
+  contractId     String?
+  productType    String?
+  label          String?
+  energySources  String?
+  contractDate   String?
+  deliveryDate   String?
+  reportingStart String?
+  reportingEnd   String?
+  sellerName     String?
+  sellerAddress  String?
+  country        String?
+  region         String?
+  volume         String?
   createdBy      String
   minted         Boolean
   createdAt      DateTime    @default(now())
@@ -59,13 +58,19 @@ model Event {
 }
 
 enum EventType {
-  MINT
+  // Filecoin events
   TRANSFER
   LIST
   BUY
   REDEEM
   GRANT_ROLE
   REVOKE_ROLE
+  // EWC events
+  CLAIM
+  REDEMPTION_SET
+  CERTIFICATE_BATCH_MINTED
+  // Common
+  MINT
 }
 
 enum Chain {
@@ -80,4 +85,18 @@ model AddressRoles {
   isMinter   Boolean  @default(false)
   isRedeemer Boolean  @default(false)
   createdAt  DateTime @default(now())
+}
+
+model Transaction {
+  id              Int             @id @default(autoincrement())
+  hash            String?         @unique
+  rawArgs         Json
+  transactionType TransactionType
+  success         Boolean?
+  nonce           Int?
+  createdAt       DateTime        @default(now())
+}
+
+enum TransactionType {
+  MINT
 }

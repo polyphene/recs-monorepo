@@ -77,7 +77,6 @@ function ListRecsRow({ id }) {
     onchainDataLoading ||
     !onChainData?.[0] ||
     onChainData?.[1].toString() === '0' ||
-    onChainData?.[2].toString() === '0' ||
     metadataLoading ||
     metadataError ||
     !data?.metadataByCid

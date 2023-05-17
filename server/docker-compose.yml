@@ -29,14 +29,17 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/recs?schema=recs&connect_timeout=3000
       - ETH_WSS_URI=wss://wss.hyperspace.node.glif.io/apigw/lotus/rpc/v0
       - ETH_HTTP_URI=https://api.hyperspace.node.glif.io/
+      - WEB3_STORAGE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDY1NUM2MzU5MWVGOTAwMjUzNDg1N0Q2NDdkRERCOGIyNEUzZkMwRTAiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2NzY5ODYwNzU5NTMsIm5hbWUiOiJyZWNzLWRldiJ9.LmRzqwqJ9CILIKTteurqJjUtLeE4NQmokCgHvx9Xgsg
       # It is recommended to deploy a new rec marketplace contract for your developer environment.
       # See https://github.com/polyphene/recs-contract
-      - REC_MARKETPLACE_ADDRESS=0x6B8113878282838535988B1e9AE36F9AD3B2eB6d
-      - DEPLOYMENT_BLOCK_HEIGHT=306310
+      - REC_MARKETPLACE_ADDRESS=0x65dc05CF2641B19C09e31d14421ee42F78C6AA26
+      - DEPLOYMENT_BLOCK_HEIGHT=348721
       # Energy Web foundation related env
       - EWF_HTTP_URI=https://rpc.energyweb.org
       - REGISTRY_EXTENDED_ADDRESS=0x5651a7A38753A9692B7740CCeCA3824a4d33aEFb
       - BATCH_FACTORY_ADDRESS=0x2248a8e53c8cf533aeef2369fff9dc8c036c8900
+      # Bridge private key
+      - BRIDGE_PRIVATE_KEY=0x570a1f99caf2860cbbb34599473786fdb4450b179063be745f9b13cee0c82241
     ports:
       # GraphQL GUI
       - "4000:4000"

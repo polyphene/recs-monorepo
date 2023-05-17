@@ -33,3 +33,12 @@ For the server to be able to start up, a few environment variables have to be se
 - `REC_MARKETPLACE_ADDRESS`: Address where the RECMarketplace contract is deployed.
 - `DEPLOYMENT_BLOCK_HEIGHT`: Block when the RECMarketplace contract was deployed. Used once at the first start of the server,
 to ensure we do not miss any role related event to seed in the database.
+
+## Energy Web Chain
+
+We are seeding deployed contract over filecoin with data coming from the Energy Web Chain. There are a few things to know
+when it comes to that bridge:
+1. The amount of RECs minted and claimed on Energy Web Chain and bridged to Filecoin will differ as **Certificate collection
+1 and 2 do not have any redemption statement set**.
+2. The amount of RECs minted and claimed is different on the Energy Web Chain. Currently the difference is of 524,257 MWh.
+With 239216 MWh minted and 238691,743 MWh claimed.  

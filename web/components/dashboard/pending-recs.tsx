@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@apollo/client';
-import { ClipboardCopy } from 'lucide-react';
 import { useAccount } from 'wagmi';
 
-import { METADATA_BY_CREATOR } from '@/lib/graphql';
+import { FILTERED_METADATA } from '@/lib/graphql';
 import { MintRECs } from '@/components/mint-recs-dialog';
 
 function PendingRecsRow({
@@ -61,8 +60,8 @@ export function PendingRecsTable() {
   const { address } = useAccount();
   const [isPolling, setIsPolling] = useState(false);
   const { loading, error, data, previousData, startPolling, stopPolling } =
-    useQuery(METADATA_BY_CREATOR, {
-      variables: { broker: address },
+    useQuery(FILTERED_METADATA, {
+      variables: { where: { broker: address, minted: false } },
       fetchPolicy: 'cache-and-network',
     });
 
@@ -82,7 +81,7 @@ export function PendingRecsTable() {
       </p>
     );
 
-  if (data.metadataByCreator.length === 0)
+  if (data.filteredMetadata.length === 0)
     return <p className="leading-7">No RECs pending mint</p>;
 
   return (
@@ -116,8 +115,7 @@ export function PendingRecsTable() {
         </tr>
       </thead>
       <tbody>
-        {data.metadataByCreator.map((m) => {
-          if (m.minted) return <></>;
+        {data.filteredMetadata.map((m) => {
           return <PendingRecsRow key={m.cid} metadata={m} />;
         })}
       </tbody>

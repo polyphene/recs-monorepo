@@ -4,11 +4,21 @@ import { useQuery } from '@apollo/client';
 import { EVENTS_BY_TOKEN_ID } from '@/lib/graphql';
 import { EventsTable } from '@/components/history/events';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 
 export const History = () => {
   const [tokenId, setTokenId] = useState('');
-
+  const [chain, setChain] = useState('');
+  console.log(chain);
   return (
     <section className="container grid items-center gap-6 pt-6 pb-8 md:py-10">
       <div className="flex items-center justify-between">
@@ -22,14 +32,32 @@ export const History = () => {
         </div>
       </div>
       <Separator className="my-4" />
-      <Input
-        id="token-id"
-        placeholder="Token Id"
-        className="w-2/12"
-        value={tokenId}
-        onChange={(e) => setTokenId(e.target.value)}
-      />
-      <EventsTable tokenId={tokenId} />
+      <div className="flex">
+        <Select
+          onValueChange={(value) => {
+            setChain(value);
+          }}
+        >
+          <SelectTrigger className="w-2/12">
+            <SelectValue placeholder="Select a chain" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Chain</SelectLabel>
+              <SelectItem value="ewc">Energy Web</SelectItem>
+              <SelectItem value="filecoin">Filecoin</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+        <Input
+          id="token-id"
+          placeholder="Token Id"
+          className="ml-4 w-2/12"
+          value={tokenId}
+          onChange={(e) => setTokenId(e.target.value)}
+        />
+      </div>
+      <EventsTable chain={chain} tokenId={tokenId} />
     </section>
   );
 };

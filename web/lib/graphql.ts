@@ -8,9 +8,9 @@ export const ADD_METADATA = gql`
   }
 `;
 
-export const METADATA_BY_CREATOR = gql`
-  query MetadataByCreator($broker: String!) {
-    metadataByCreator(broker: $broker) {
+export const FILTERED_METADATA = gql`
+  query FilteredMetadata($where: FilterMetadataInput!) {
+    filteredMetadata(where: $where) {
       cid
       country
       region
@@ -94,6 +94,75 @@ export const EVENTS_BY_TOKEN_ID = gql`
           operator
           to
           value
+        }
+      }
+    }
+  }
+`;
+
+export const FILTERED_COLLECTIONS = gql`
+  query FilteredEvents($where: FilterCollectionInput!) {
+    filteredCollections(where: $where) {
+      id
+      events {
+        blockHeight
+        createdAt
+        eventType
+        id
+        logIndex
+        tokenId
+        transactionHash
+        chain
+        data {
+          ... on RoleEventData {
+            __typename
+            account
+            sender
+            role
+          }
+          ... on ListEventData {
+            __typename
+            price
+            seller
+            tokenAmount
+            tokenId
+          }
+          ... on BuyEventData {
+            __typename
+            price
+            buyer
+            seller
+            tokenAmount
+            tokenId
+          }
+          ... on RedeemEventData {
+            __typename
+            amount
+            owner
+            tokenId
+          }
+          ... on TransferEventData {
+            __typename
+            from
+            id
+            operator
+            to
+            value
+          }
+          ... on EwcRedemptionSetEventData {
+            __typename
+            batchId
+            redemptionStatement
+            storagePointer
+          }
+          ... on EwcClaimEventData {
+            __typename
+            _claimIssuer
+            _claimSubject
+            _topic
+            _id
+            _value
+          }
         }
       }
     }

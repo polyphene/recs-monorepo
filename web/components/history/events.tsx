@@ -1,9 +1,15 @@
 import { ApolloError, useQuery } from '@apollo/client';
+import { err } from 'pino-std-serializers';
 
-import { EVENTS_BY_TOKEN_ID, METADATA_BY_CID } from '@/lib/graphql';
+import {
+  EVENTS_BY_TOKEN_ID,
+  FILTERED_COLLECTIONS,
+  METADATA_BY_CID,
+} from '@/lib/graphql';
 
 type Event = {
   id: number;
+  chain: string;
   tokenId: string;
   eventType: string;
   data:
@@ -11,7 +17,9 @@ type Event = {
     | TransferEventData
     | ListEventData
     | BuyEventData
-    | RedeemEventData;
+    | RedeemEventData
+    | EwcRedemptionSetEventData
+    | EwcClaimEventData;
   blockHeight: string;
   transactionHash: string;
   logIndex: string;
@@ -53,7 +61,23 @@ type RedeemEventData = {
   tokenId: string;
 };
 
+type EwcRedemptionSetEventData = {
+  batchId: string;
+  redemptionStatement: string;
+  storagePointer: string;
+};
+
+type EwcClaimEventData = {
+  _claimIssuer: string;
+  _claimSubject: string;
+  _topic: string;
+  _id: string;
+  _value: string;
+  _claimData: string;
+};
+
 function EventsRow({ event }: { event: Event }) {
+  console.log(event);
   return (
     <tr className="m-0 border-t border-slate-200 p-0 even:bg-slate-100 dark:border-slate-700 dark:even:bg-slate-800">
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
@@ -63,7 +87,11 @@ function EventsRow({ event }: { event: Event }) {
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
         <a
           className="underline hover:no-underline"
-          href={`https://hyperspace.filfox.info/en/message/${event.transactionHash}`}
+          href={
+            event.chain === 'ENERGY_WEB'
+              ? `https://explorer.energyweb.org/tx/${event.transactionHash}`
+              : `https://hyperspace.filfox.info/en/message/${event.transactionHash}`
+          }
           target="_blank"
           rel="noreferrer"
         >
@@ -88,22 +116,37 @@ function EventsRow({ event }: { event: Event }) {
   );
 }
 
-export function EventsTable({ tokenId }) {
+export function EventsTable({
+  tokenId,
+  chain,
+}: {
+  tokenId: string;
+  chain: string;
+}) {
+  if (tokenId.length === 0 || chain.length === 0) {
+    return <p>Please select a chain and specify a token Id</p>;
+  }
+
   let {
     data,
     loading,
     error,
   }: {
-    data: { eventsByTokenId: Array<Event> };
+    data: { filteredCollections: Array<{ events: Array<Event> }> };
     loading: boolean;
     error?: ApolloError;
-  } = useQuery(EVENTS_BY_TOKEN_ID, {
-    variables: { tokenId },
+  } = useQuery(FILTERED_COLLECTIONS, {
+    variables: {
+      where: {
+        filecoinTokenId: chain === 'filecoin' ? tokenId : null,
+        energyWebTokenId: chain === 'ewc' ? tokenId : null,
+      },
+    },
   });
-
+  console.log(loading, error, data);
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Couldn&apos;t fetch events for token ID {tokenId}</p>;
-  if (data.eventsByTokenId.length === 0)
+  if (data.filteredCollections.length === 0)
     return <p>No events for token ID {tokenId}</p>;
 
   return (
@@ -122,7 +165,7 @@ export function EventsTable({ tokenId }) {
         </tr>
       </thead>
       <tbody>
-        {data.eventsByTokenId
+        {data.filteredCollections[0].events
           .slice()
           .filter((e) => e.eventType !== 'TRANSFER')
           .sort((a, b) => {

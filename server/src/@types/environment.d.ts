@@ -1,10 +1,10 @@
 declare global {
-  namespace NodeJS {
-    interface ProcessEnv {
-      JWT_SECRET: string | undefined;
-      API_PORT: string | undefined;
+    namespace NodeJS {
+        interface ProcessEnv {
+            JWT_SECRET: string | undefined;
+            API_PORT: string | undefined;
+        }
     }
-  }
 }
 
 // If this file has no import/export statements (i.e. is a script)

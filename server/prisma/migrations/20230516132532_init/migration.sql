@@ -1,15 +1,18 @@
 -- CreateEnum
-CREATE TYPE "EventType" AS ENUM ('MINT', 'TRANSFER', 'LIST', 'BUY', 'REDEEM', 'GRANT_ROLE', 'REVOKE_ROLE');
+CREATE TYPE "EventType" AS ENUM ('TRANSFER', 'LIST', 'BUY', 'REDEEM', 'GRANT_ROLE', 'REVOKE_ROLE', 'CLAIM', 'REDEMPTION_SET', 'CERTIFICATE_BATCH_MINTED', 'MINT');
 
 -- CreateEnum
 CREATE TYPE "Chain" AS ENUM ('FILECOIN', 'ENERGY_WEB');
+
+-- CreateEnum
+CREATE TYPE "TransactionType" AS ENUM ('MINT');
 
 -- CreateTable
 CREATE TABLE "Collection" (
     "id" SERIAL NOT NULL,
     "filecoinTokenId" TEXT,
     "energyWebTokenId" TEXT,
-    "metadataId" INTEGER NOT NULL,
+    "metadataId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Collection_pkey" PRIMARY KEY ("id")
@@ -19,20 +22,19 @@ CREATE TABLE "Collection" (
 CREATE TABLE "Metadata" (
     "id" SERIAL NOT NULL,
     "cid" TEXT NOT NULL,
-    "collectionId" INTEGER,
-    "contractId" TEXT NOT NULL,
-    "productType" TEXT NOT NULL,
-    "label" TEXT NOT NULL,
-    "energySources" TEXT NOT NULL,
-    "contractDate" TEXT NOT NULL,
-    "deliveryDate" TEXT NOT NULL,
-    "reportingStart" TEXT NOT NULL,
-    "reportingEnd" TEXT NOT NULL,
-    "sellerName" TEXT NOT NULL,
-    "sellerAddress" TEXT NOT NULL,
-    "country" TEXT NOT NULL,
-    "region" TEXT NOT NULL,
-    "volumeMWh" INTEGER NOT NULL,
+    "contractId" TEXT,
+    "productType" TEXT,
+    "label" TEXT,
+    "energySources" TEXT,
+    "contractDate" TEXT,
+    "deliveryDate" TEXT,
+    "reportingStart" TEXT,
+    "reportingEnd" TEXT,
+    "sellerName" TEXT,
+    "sellerAddress" TEXT,
+    "country" TEXT,
+    "region" TEXT,
+    "volume" TEXT,
     "createdBy" TEXT NOT NULL,
     "minted" BOOLEAN NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -68,6 +70,19 @@ CREATE TABLE "AddressRoles" (
     CONSTRAINT "AddressRoles_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Transaction" (
+    "id" SERIAL NOT NULL,
+    "hash" TEXT,
+    "rawArgs" JSONB NOT NULL,
+    "transactionType" "TransactionType" NOT NULL,
+    "success" BOOLEAN,
+    "nonce" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Transaction_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Collection_filecoinTokenId_key" ON "Collection"("filecoinTokenId");
 
@@ -81,16 +96,16 @@ CREATE UNIQUE INDEX "Collection_metadataId_key" ON "Collection"("metadataId");
 CREATE UNIQUE INDEX "Metadata_cid_key" ON "Metadata"("cid");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Metadata_collectionId_key" ON "Metadata"("collectionId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Event_blockHeight_transactionHash_logIndex_key" ON "Event"("blockHeight", "transactionHash", "logIndex");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AddressRoles_address_key" ON "AddressRoles"("address");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "Transaction_hash_key" ON "Transaction"("hash");
+
 -- AddForeignKey
-ALTER TABLE "Collection" ADD CONSTRAINT "Collection_metadataId_fkey" FOREIGN KEY ("metadataId") REFERENCES "Metadata"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Collection" ADD CONSTRAINT "Collection_metadataId_fkey" FOREIGN KEY ("metadataId") REFERENCES "Metadata"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Event" ADD CONSTRAINT "Event_collectionId_fkey" FOREIGN KEY ("collectionId") REFERENCES "Collection"("id") ON DELETE SET NULL ON UPDATE CASCADE;
