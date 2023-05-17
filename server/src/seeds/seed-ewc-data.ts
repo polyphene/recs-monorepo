@@ -67,9 +67,7 @@ type ClaimSingleArgs = {
     _claimData: string;
 };
 
-const processEvents = async (fromBlock: number) => {
-    const prisma = new PrismaClient();
-
+const processEvents = async (prisma: PrismaClient, fromBlock: number) => {
     const { registryExtendedContract, batchFactoryContract } = getEwfContractsInstances();
 
     // Retrieve mint events and store them in the database
@@ -170,7 +168,6 @@ const processEvents = async (fromBlock: number) => {
         return;
     }
 
-    console.info('trying to test those test those test those test');
     const dbEvents = await Promise.all(
         dbEventInputs.slice(0, dbEventInputs.length - 1).map(data => {
             return prisma.event.create({
@@ -339,5 +336,7 @@ export const seedEwcData = async () => {
         fromBlock = latestHandledEvent.blockHeight;
     }
 
-    await processEvents(parseInt(fromBlock, 10) + 1);
+    await processEvents(prisma, parseInt(fromBlock, 10) + 1);
+
+    await prisma.$disconnect();
 };

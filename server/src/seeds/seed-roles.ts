@@ -19,7 +19,7 @@ type AccountRolesDictionary = {
     };
 };
 
-const seedRoles = async (fromBlock: number) => {
+const seedRoles = async (prisma: PrismaClient, fromBlock: number) => {
     const recMarketplace = getRecMarketplaceContractInstance();
 
     // Fetch RoleGranted events from the chain
@@ -46,8 +46,6 @@ const seedRoles = async (fromBlock: number) => {
     const events = [...roleGrantedEvents, ...roleRevokedEvents].sort(
         (a, b) => a.blockNumber + a.logIndex - b.blockNumber - b.logIndex,
     );
-
-    const prisma = new PrismaClient();
 
     // Iterate over events, generate document in DB and the new AddressRoles state
     const accountRoles: AccountRolesDictionary = {};
@@ -184,5 +182,7 @@ export const constructRolesTable = async () => {
         fromBlock = latestHandledEvent.blockHeight;
     }
 
-    await seedRoles(parseInt(fromBlock, 10));
+    await seedRoles(prisma, parseInt(fromBlock, 10));
+
+    await prisma.$disconnect();
 };
