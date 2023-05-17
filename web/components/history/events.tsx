@@ -123,10 +123,6 @@ export function EventsTable({
   tokenId: string;
   chain: string;
 }) {
-  if (tokenId.length === 0 || chain.length === 0) {
-    return <p>Please select a chain and specify a token Id</p>;
-  }
-
   let {
     data,
     loading,
@@ -143,7 +139,11 @@ export function EventsTable({
       },
     },
   });
-  console.log(loading, error, data);
+
+  if (tokenId.length === 0 || chain.length === 0) {
+    return <p>Please select a chain and specify a token Id</p>;
+  }
+
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Couldn&apos;t fetch events for token ID {tokenId}</p>;
   if (data.filteredCollections.length === 0)

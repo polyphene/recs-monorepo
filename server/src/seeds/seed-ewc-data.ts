@@ -161,9 +161,6 @@ const processEvents = async (fromBlock: number) => {
         };
     });
 
-    console.info(`fetched ${dbClaimEventInputs.length} CLAIM events from EWC`);
-    console.info(v8.getHeapStatistics().heap_size_limit / (1024 * 1024));
-
     const dbEventInputs = [...dbMintEventInputs, ...dbRedemptionEventInputs, ...dbClaimEventInputs].sort(
         (a, b) => parseInt(a.blockHeight, 10) - parseInt(b.blockHeight, 1),
     );
