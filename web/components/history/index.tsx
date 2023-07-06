@@ -17,8 +17,8 @@ import { Separator } from '@/components/ui/separator';
 
 export const History = () => {
   const [tokenId, setTokenId] = useState('');
-  const [chain, setChain] = useState('');
-  console.log(chain);
+  const [chain, setChain] = useState('filecoin');
+
   return (
     <section className="container grid items-center gap-6 pt-6 pb-8 md:py-10">
       <div className="flex items-center justify-between">
@@ -37,6 +37,8 @@ export const History = () => {
           onValueChange={(value) => {
             setChain(value);
           }}
+          disabled={true}
+          defaultValue={'filecoin'}
         >
           <SelectTrigger className="w-2/12">
             <SelectValue placeholder="Select a chain" />

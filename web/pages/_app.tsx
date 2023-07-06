@@ -5,7 +5,7 @@ import { ThemeProvider } from 'next-themes';
 import '@/styles/globals.css';
 import { ToastContainer } from 'react-toastify';
 import { WagmiConfig, configureChains, createClient } from 'wagmi';
-import { filecoinHyperspace } from 'wagmi/chains';
+import { filecoinCalibration } from 'wagmi/chains';
 import { InjectedConnector } from 'wagmi/connectors/injected';
 import { jsonRpcProvider } from 'wagmi/providers/jsonRpc';
 import { publicProvider } from 'wagmi/providers/public';
@@ -25,13 +25,13 @@ const fontSans = FontSans({
 // Configure chains & providers with the Alchemy provider.
 // Two popular providers are Alchemy (alchemy.com) and Infura (infura.io)
 const { chains, provider, webSocketProvider } = configureChains(
-  [filecoinHyperspace],
+  [filecoinCalibration],
   [
     jsonRpcProvider({
       priority: 0,
       rpc: (chain) => ({
-        http: `https://api.hyperspace.node.glif.io/rpc/v1`,
-        webSocket: `wss://wss.hyperspace.node.glif.io/apigw/lotus/rpc/v1`,
+        http: `https://api.calibration.node.glif.io/rpc/v1`,
+        webSocket: `wss://wss.calibration.node.glif.io/apigw/lotus/rpc/v0`,
       }),
     }),
     publicProvider(),

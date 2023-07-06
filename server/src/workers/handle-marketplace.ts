@@ -2,20 +2,16 @@ import { BigNumber } from 'ethers';
 import { EventType, PrismaClient } from '@prisma/client';
 import { getCurrentBlockHeight, getRecMarketplaceContractInstance } from '../utils/web3-utils';
 
-export const handleList = async (seller: string, tokenId: BigNumber, tokenAmount: BigNumber, price: BigNumber) => {
-    // Get event metadata
-    const blockHeight = await getCurrentBlockHeight();
-    const recMarketplace = getRecMarketplaceContractInstance();
-
-    // Fetch TokenListed events from the chain, we will only handle one of them as it is most likely the one
-    // we are looking for
-    const tokenListed = await recMarketplace.queryFilter(
-        recMarketplace.filters.TokenListed(seller, tokenId),
-        blockHeight,
-    );
-
-    const prisma = new PrismaClient();
-
+export const handleList = async (
+    prisma: PrismaClient,
+    blockHeight: number,
+    transactionHash: string,
+    logIndex: number,
+    seller: string,
+    tokenId: BigNumber,
+    tokenAmount: BigNumber,
+    price: BigNumber,
+) => {
     const collection = await prisma.collection
         .findUnique({
             where: {
@@ -37,8 +33,8 @@ export const handleList = async (seller: string, tokenId: BigNumber, tokenAmount
             price: price.toString(),
         },
         blockHeight: blockHeight.toString(),
-        transactionHash: tokenListed[0].transactionHash,
-        logIndex: tokenListed[0].logIndex,
+        transactionHash: transactionHash,
+        logIndex: logIndex,
         collectionId: collection.id,
     };
     await prisma.event
@@ -46,8 +42,8 @@ export const handleList = async (seller: string, tokenId: BigNumber, tokenAmount
             where: {
                 blockHeight_transactionHash_logIndex: {
                     blockHeight: blockHeight.toString(),
-                    transactionHash: tokenListed[0].transactionHash,
-                    logIndex: tokenListed[0].logIndex,
+                    transactionHash: transactionHash,
+                    logIndex: logIndex,
                 },
             },
             update: listedData,
@@ -59,25 +55,16 @@ export const handleList = async (seller: string, tokenId: BigNumber, tokenAmount
 };
 
 export const handleBuy = async (
+    prisma: PrismaClient,
+    blockHeight: number,
+    transactionHash: string,
+    logIndex: number,
     buyer: string,
     seller: string,
     tokenId: BigNumber,
     tokenAmount: BigNumber,
     price: BigNumber,
 ) => {
-    // Get event metadata
-    const blockHeight = await getCurrentBlockHeight();
-    const recMarketplace = getRecMarketplaceContractInstance();
-
-    // Fetch TokenBought events from the chain, we will only handle one of them as it is most likely the one
-    // we are looking for
-    const tokenBought = await recMarketplace.queryFilter(
-        recMarketplace.filters.TokenBought(buyer, seller, tokenId),
-        blockHeight,
-    );
-
-    const prisma = new PrismaClient();
-
     const collection = await prisma.collection
         .findUnique({
             where: {
@@ -100,8 +87,8 @@ export const handleBuy = async (
             price: price.toString(),
         },
         blockHeight: blockHeight.toString(),
-        transactionHash: tokenBought[0].transactionHash,
-        logIndex: tokenBought[0].logIndex,
+        transactionHash: transactionHash,
+        logIndex: logIndex,
         collectionId: collection.id,
     };
     await prisma.event
@@ -109,8 +96,8 @@ export const handleBuy = async (
             where: {
                 blockHeight_transactionHash_logIndex: {
                     blockHeight: blockHeight.toString(),
-                    transactionHash: tokenBought[0].transactionHash,
-                    logIndex: tokenBought[0].logIndex,
+                    transactionHash: transactionHash,
+                    logIndex: logIndex,
                 },
             },
             update: boughtData,

@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 
 function MyRecRow({ id, isRedeemer }) {
   const { address } = useAccount();
-
+  console.log(id);
   const {
     data: metadata,
     isError: metadataIsError,
@@ -51,7 +51,7 @@ function MyRecRow({ id, isRedeemer }) {
     }
   );
   const { writeAsync } = useContractWrite(config);
-
+  console.log(metadata);
   if (
     metadataIsLoading ||
     metadataIsError ||

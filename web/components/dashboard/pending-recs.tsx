@@ -13,7 +13,7 @@ function PendingRecsRow({
     reportingStart,
     reportingEnd,
     energySources,
-    volumeMWh,
+    volume,
   },
 }) {
   return (
@@ -22,7 +22,7 @@ function PendingRecsRow({
         <div className="flex items-center">
           <a
             className="underline hover:no-underline"
-            href={`https://explore.ipld.io/#/explore/${cid}`}
+            href={`https://bafybeiepdrogejw7eji6qdbq3hpd3ewuuhecyvf4nyofvhntsbyb3w7tqa.on.fleek.co/#/explore/${cid}`}
             target="_blank"
             rel="noreferrer"
           >
@@ -47,10 +47,10 @@ function PendingRecsRow({
         {energySources}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        {volumeMWh}
+        {volume}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        <MintRECs cid={cid} volume={volumeMWh} />
+        <MintRECs cid={cid} volume={volume} />
       </td>
     </tr>
   );
@@ -107,7 +107,7 @@ export function PendingRecsTable() {
             Energy Sources
           </th>
           <th className="border border-slate-200 px-4 py-2 text-left font-bold dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-            Volume (MWh)
+            Volume (Wh)
           </th>
           <th className="border border-slate-200 px-4 py-2 text-left font-bold dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
             Action

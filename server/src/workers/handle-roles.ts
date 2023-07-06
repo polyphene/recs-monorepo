@@ -1,20 +1,15 @@
 import { getCurrentBlockHeight, getRecMarketplaceContractInstance, getRoleJsonKey } from '../utils/web3-utils';
 import { EventType, PrismaClient } from '@prisma/client';
 
-export const handleGrantRole = async (role: string, account: string, sender: string) => {
-    // Get event metadata
-    const blockHeight = await getCurrentBlockHeight();
-    const recMarketplace = getRecMarketplaceContractInstance();
-
-    // Fetch RoleGranted events from the chain, we will only handle one of them as it is most likely the one
-    // we are looking for
-    const roleGranted = await recMarketplace.queryFilter(
-        recMarketplace.filters.RoleGranted(role, account, sender),
-        blockHeight,
-    );
-
-    const prisma = new PrismaClient();
-
+export const handleGrantRole = async (
+    prisma: PrismaClient,
+    blockHeight: number,
+    transactionHash: string,
+    logIndex: number,
+    role: string,
+    account: string,
+    sender: string,
+) => {
     await prisma.addressRoles
         .upsert({
             where: {
@@ -41,16 +36,16 @@ export const handleGrantRole = async (role: string, account: string, sender: str
             sender,
         },
         blockHeight: blockHeight.toString(),
-        transactionHash: roleGranted[0].transactionHash,
-        logIndex: roleGranted[0].logIndex,
+        transactionHash: transactionHash,
+        logIndex: logIndex,
     };
     await prisma.event
         .upsert({
             where: {
                 blockHeight_transactionHash_logIndex: {
                     blockHeight: blockHeight.toString(),
-                    transactionHash: roleGranted[0].transactionHash,
-                    logIndex: roleGranted[0].logIndex,
+                    transactionHash: transactionHash,
+                    logIndex: logIndex,
                 },
             },
             update: roleGrantedData,
@@ -61,20 +56,15 @@ export const handleGrantRole = async (role: string, account: string, sender: str
         });
 };
 
-export const handleRevokeRole = async (role: string, account: string, sender: string) => {
-    // Get event metadata
-    const blockHeight = await getCurrentBlockHeight();
-    const recMarketplace = getRecMarketplaceContractInstance();
-
-    // Fetch RoleRevoked events from the chain, we will only handle one of them as it is most likely the one
-    // we are looking for
-    const roleRevoked = await recMarketplace.queryFilter(
-        recMarketplace.filters.RoleRevoked(role, account, sender),
-        blockHeight,
-    );
-
-    const prisma = new PrismaClient();
-
+export const handleRevokeRole = async (
+    prisma: PrismaClient,
+    blockHeight: number,
+    transactionHash: string,
+    logIndex: number,
+    role: string,
+    account: string,
+    sender: string,
+) => {
     await prisma.addressRoles
         .upsert({
             where: {
@@ -101,16 +91,16 @@ export const handleRevokeRole = async (role: string, account: string, sender: st
             sender,
         },
         blockHeight: blockHeight.toString(),
-        transactionHash: roleRevoked[0].transactionHash,
-        logIndex: roleRevoked[0].logIndex,
+        transactionHash: transactionHash,
+        logIndex: logIndex,
     };
     await prisma.event
         .upsert({
             where: {
                 blockHeight_transactionHash_logIndex: {
                     blockHeight: blockHeight.toString(),
-                    transactionHash: roleRevoked[0].transactionHash,
-                    logIndex: roleRevoked[0].logIndex,
+                    transactionHash: transactionHash,
+                    logIndex: logIndex,
                 },
             },
             update: roleRevokedData,

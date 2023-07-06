@@ -8,33 +8,33 @@ datasource db {
 }
 
 model Collection {
-  id               Int       @id @default(autoincrement())
+  id                Int      @id @default(autoincrement())
   // Store as string because uint256
-  filecoinTokenId  String?   @unique
-  energyWebTokenId String?   @unique
-  events           Event[]
-  metadata         Metadata? @relation(fields: [metadataId], references: [id])
-  metadataId       Int?      @unique
-  createdAt        DateTime  @default(now())
+  filecoinTokenId   String?  @unique
+  energyWebTokenIds String[]
+  events            Event[]
+  metadata          Metadata @relation(fields: [metadataId], references: [id])
+  metadataId        Int      @unique
+  createdAt         DateTime @default(now())
 }
 
 model Metadata {
   id             Int         @id @default(autoincrement())
   cid            String      @unique
   collection     Collection?
-  contractId     String?
-  productType    String?
-  label          String?
-  energySources  String?
-  contractDate   String?
-  deliveryDate   String?
-  reportingStart String?
-  reportingEnd   String?
-  sellerName     String?
-  sellerAddress  String?
-  country        String?
-  region         String?
-  volume         String?
+  contractId     String
+  productType    String
+  label          String
+  energySources  String
+  contractDate   String
+  deliveryDate   String
+  reportingStart String
+  reportingEnd   String
+  sellerName     String
+  sellerAddress  String
+  country        String
+  region         String
+  volume         String
   createdBy      String
   minted         Boolean
   createdAt      DateTime    @default(now())
@@ -44,7 +44,6 @@ model Event {
   id              Int         @id @default(autoincrement())
   collectionId    Int?
   collection      Collection? @relation(fields: [collectionId], references: [id])
-  chain           Chain       @default(FILECOIN)
   // Store as string because uint256
   tokenId         String?
   eventType       EventType
@@ -65,17 +64,7 @@ enum EventType {
   REDEEM
   GRANT_ROLE
   REVOKE_ROLE
-  // EWC events
-  CLAIM
-  REDEMPTION_SET
-  CERTIFICATE_BATCH_MINTED
-  // Common
   MINT
-}
-
-enum Chain {
-  FILECOIN
-  ENERGY_WEB
 }
 
 model AddressRoles {
@@ -99,4 +88,10 @@ model Transaction {
 
 enum TransactionType {
   MINT
+}
+
+model Utils {
+  id                  Int    @id @default(autoincrement())
+  ewcBlockHeight      String
+  filecoinBlockHeight String
 }

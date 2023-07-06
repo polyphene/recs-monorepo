@@ -1,14 +1,41 @@
-import { Chain, EventType, PrismaClient, TransactionType } from '@prisma/client';
-import { decodeClaimV1, decodeClaimV2, decodeClaimV3, getEwfContractsInstances } from '../utils/web3-utils';
-import { BigNumber, constants, Event } from 'ethers';
-import type { Prisma, Event as PrismaEvent } from '.prisma/client';
+/*
+eslint {
+  @typescript-eslint/no-unsafe-member-access: 0,
+  @typescript-eslint/no-unsafe-assignment: 0,
+  @typescript-eslint/no-unsafe-call: 0,
+  @typescript-eslint/no-unsafe-return: 0
+}
+*/
+
+import { PrismaClient, TransactionType } from '@prisma/client';
+import { getEwfContractsInstances } from '../utils/web3-utils';
+import { BigNumber, constants, Contract, Event } from 'ethers';
+import type { Prisma } from '.prisma/client';
+import path from 'path';
+import fs from 'fs';
+import Papa from 'papaparse';
+import {
+    AgreementMetadataCoder,
+    ClaimDataCoder,
+    IAgreementMetadata,
+    IClaimData,
+} from '@zero-labs/tokenization-contracts';
+import { sprintf } from 'sprintf-js';
+import { Metadata, store } from '../utils/storage';
 
 /*
  * Energy Web Chain intersected data
  */
 
-type CertificateRegistry = {
-    [key: string]: Certificate;
+type Agreement = {
+    agreementAddress: string;
+    certificateIds: string[];
+    signedAmount: string;
+    filledAmount: string;
+    buyer: string;
+    seller: string;
+    metadata: string;
+    metadataDecoded: string;
 };
 
 type Batch = {
@@ -29,9 +56,24 @@ type Certificate = {
 };
 
 type Claim = {
-    claimSingleEvent: Event;
+    // Certificate ID that was subject of a claim.
+    tokenId: string;
+    // EW address.
+    claimIssuer: string;
+    // SP address that claimed the RECs.
     claimSubject: string;
-    value: BigNumber;
+    // ?
+    topic: string;
+    // Amount of RECs claimed.
+    value: string;
+    // Metadata associated to the claim.
+    claimData: string;
+    // Decoded claim data.
+    claimDataDecoded: string;
+    // Transaction hash at which the corresponding event was emitted.
+    transactionHash: string;
+    // Event of the Claim
+    claimSingleEvent: Event;
 };
 
 /*
@@ -66,200 +108,435 @@ type ClaimSingleArgs = {
     _claimData: string;
 };
 
-const processEvents = async (prisma: PrismaClient, fromBlock: number) => {
-    const { registryExtendedContract, batchFactoryContract } = getEwfContractsInstances();
+type AgreementFilledArgs = {
+    agreementAddress: string;
+    certificateId: BigNumber;
+    amount: BigNumber;
+};
 
-    // Retrieve mint events and store them in the database
+type AgreementSignedArgs = {
+    agreementAddress: string;
+    buyer: string;
+    seller: string;
+    amount: BigNumber;
+};
+
+type AgreementData = {
+    buyer: string;
+    seller: string;
+    amount: BigNumber;
+    metadata: string;
+    valid: boolean;
+};
+
+type AgreementDataCached = AgreementData & {
+    blockId: string;
+    address: string;
+    amount: string;
+};
+
+/*
+ * Github data types
+ */
+
+type AllocationGithub = {
+    allocation_id: string;
+    UUID: string;
+    contract_id: string;
+    minerID: string;
+    defaulted: number;
+    allocation_cid: string;
+    allocation_volume_MWh: number;
+    productType: string;
+    label: string | null;
+    energySources: string;
+    contractDate: number;
+    deliveryDate: number;
+    reportingStart: string;
+    reportingEnd: string;
+    sellerName: string;
+    sellerAddress: string;
+    country: string;
+    region: string | null;
+    contract_volume_MWh: number;
+};
+
+const AGREEMENTS_DATA_CACHE = path.resolve(__dirname, '../cache/agreements-data-cache.csv');
+
+// eslint-disable-next-line @typescript-eslint/ban-types
+const readCSV = async (filePath: string, stepCallback: Function): Promise<void> => {
+    const csvFile = fs.readFileSync(filePath);
+    const csvData = csvFile.toString();
+    return new Promise(resolve => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+        Papa.parse(csvData, {
+            header: true,
+            step: function (result: Papa.ParseStepResult<AgreementDataCached>) {
+                stepCallback(result);
+            },
+            complete: results => {
+                resolve();
+            },
+        });
+    });
+};
+
+// getAgreementData fetches the metadata for the Agreements created on EWC. As this takes quite long we have a CSV-based
+// cache system to speed up the process.
+const getAgreementData = async (
+    agreementFactoryContract: Contract,
+    agreementSignedEvents: Array<Event>,
+): Promise<{
+    [p: string]: AgreementData;
+}> => {
+    const agreementsData: { [key: string]: AgreementData } = {};
+    let latestBlockId = 0;
+    const existingCache = fs.existsSync(AGREEMENTS_DATA_CACHE);
+
+    if (existingCache) {
+        await readCSV(AGREEMENTS_DATA_CACHE, function (result: Papa.ParseStepResult<AgreementDataCached>) {
+            if (!result.data.valid) {
+                return;
+            }
+            agreementsData[result.data.address] = {
+                buyer: result.data.buyer,
+                seller: result.data.seller,
+                amount: BigNumber.from(result.data.amount),
+                metadata: result.data.metadata,
+                valid: result.data.valid,
+            };
+
+            if (parseInt(result.data.blockId, 10) > latestBlockId) {
+                latestBlockId = parseInt(result.data.blockId, 10);
+            }
+        });
+    }
+
+    const stream = fs.createWriteStream(AGREEMENTS_DATA_CACHE, { flags: 'a' });
+
+    if (!existingCache) {
+        stream.write(`blockId,address,buyer,seller,amount,metadata,valid\n`);
+    }
+
+    // Iterate through all signed agreements to get metadata.
+    for (const agreementSignedEvent of agreementSignedEvents.sort((a, b) => a.blockNumber - b.blockNumber)) {
+        if (agreementSignedEvent.blockNumber <= latestBlockId) {
+            continue;
+        }
+
+        const { agreementAddress } = agreementSignedEvent.args as unknown as AgreementSignedArgs;
+
+        const agreementData: AgreementData = await agreementFactoryContract.agreementData(agreementAddress);
+
+        agreementsData[agreementAddress] = {
+            buyer: agreementData.buyer,
+            seller: agreementData.seller,
+            amount: agreementData.amount,
+            metadata: agreementData.metadata,
+            valid: agreementData.valid,
+        };
+
+        stream.write(
+            `${agreementSignedEvent.blockNumber},${agreementAddress},${agreementData.buyer},${
+                agreementData.seller
+            },${agreementData.amount.toString()},${agreementData.metadata},${agreementData.valid ? 'true' : 'false'}\n`,
+        );
+    }
+
+    stream.end();
+
+    return agreementsData;
+};
+
+// filecoinF0ToEthAddress converts a f0.. formatted Filecoin address to an Ethereum address.
+// Based on https://docs.filecoin.io/smart-contracts/filecoin-evm-runtime/address-types/#converting-to-a-0x-style-address
+function filecoinF0ToEthAddress(filecoinAddress: string): string {
+    const actorId = parseInt(filecoinAddress.slice(2)); // remove 'f0' prefix and get actor_id
+    return sprintf('0xff0000000000000000000000%016x', actorId);
+}
+
+const processEvents = async (prisma: PrismaClient, fromBlock: number) => {
+    const { registryExtendedContract, batchFactoryContract, agreementFactoryContract } = getEwfContractsInstances();
+
+    // Fetch signed and filled agreements
+    const agreementSignedEvents = await agreementFactoryContract.queryFilter(
+        agreementFactoryContract.filters.AgreementSigned(),
+        fromBlock,
+    );
+
+    const agreementFilledEvents = await agreementFactoryContract.queryFilter(
+        agreementFactoryContract.filters.AgreementFilled(),
+        fromBlock,
+    );
+
+    // Fetch agreement data on EWC
+    const agreementsData = await getAgreementData(agreementFactoryContract, agreementSignedEvents);
+
+    // Save latest block cached in DB
+    const latestBlockHeight = agreementSignedEvents.sort((a, b) => a.blockNumber - b.blockNumber)[
+        agreementSignedEvents.length - 1
+    ].blockNumber;
+    await prisma.utils
+        .update({
+            where: {
+                id: 1,
+            },
+            data: {
+                ewcBlockHeight: latestBlockHeight.toString(),
+            },
+        })
+        .catch(() => {
+            console.error(`could not find data utils`);
+        });
+
+    // Format all agreements
+    const agreements: Agreement[] = [];
+    const certificatesInAgreement: { [key: string]: boolean } = {}; // Used to not process useless certificates
+
+    // Iterate through all signed agreements
+    for (const agreementSignedEvent of agreementSignedEvents.sort((a, b) => a.blockNumber - b.blockNumber)) {
+        const {
+            agreementAddress: agreementSignedAddress,
+            buyer,
+            seller,
+            amount: agreementSignedAmount,
+        } = agreementSignedEvent.args as unknown as AgreementSignedArgs;
+
+        const { metadata, valid } = agreementsData[agreementSignedAddress];
+
+        if (!valid) {
+            continue;
+        }
+        const certificateIds: string[] = [];
+        let filledAmount: BigNumber = BigNumber.from(0);
+        for (const agreementFilledEvent of agreementFilledEvents) {
+            const {
+                agreementAddress: agreementFilledAddress,
+                certificateId,
+                amount: agreementFilledAmount,
+            } = agreementFilledEvent.args as unknown as AgreementFilledArgs;
+
+            if (agreementSignedAddress === agreementFilledAddress) {
+                certificatesInAgreement[certificateId.toString()] = true;
+                certificateIds.push(certificateId.toString());
+                filledAmount = filledAmount.add(agreementFilledAmount);
+            }
+        }
+        agreements.push({
+            agreementAddress: agreementSignedAddress,
+            certificateIds,
+            signedAmount: agreementSignedAmount.toString(),
+            filledAmount: filledAmount.toString(),
+            buyer,
+            seller,
+            metadata,
+            metadataDecoded: JSON.stringify(AgreementMetadataCoder.decode(metadata)),
+        });
+    }
+
+    console.info(`fetched ${agreements.length} agreements from EWC`);
+
+    // Fetch EWC related events
     const mintEvents = await registryExtendedContract.queryFilter(
         registryExtendedContract.filters.TransferSingle(null, constants.AddressZero),
         fromBlock,
     );
-    const dbMintEventInputs: Array<Prisma.EventCreateInput> = mintEvents.map(e => {
-        return {
-            tokenId: (e.args as unknown as MintedArgs).id.toString(),
-            chain: Chain.ENERGY_WEB,
-            eventType: EventType.MINT,
-            data: {
-                id: (e.args as unknown as MintedArgs).id.toString(),
-                value: (e.args as unknown as MintedArgs).value.toString(),
-                operator: (e.args as unknown as MintedArgs).operator,
-                from: (e.args as unknown as MintedArgs).from,
-                to: (e.args as unknown as MintedArgs).to,
-            } as Prisma.InputJsonObject,
-            blockHeight: e.blockNumber.toString(),
-            transactionHash: e.transactionHash,
-            logIndex: e.logIndex,
-        };
-    });
 
-    console.info(`fetched ${dbMintEventInputs.length} MINT events from EWC`);
+    console.info(`fetched ${mintEvents.length} MINT events from EWC`);
 
-    // Fetch redemption set and certificate batch minted events, then store redemption set in db
     const redemptionSetEvents = await batchFactoryContract.queryFilter(
         batchFactoryContract.filters.RedemptionStatementSet(),
         fromBlock,
     );
+
+    console.info(`fetched ${redemptionSetEvents.length} REDEMPTION_SET events from EWC`);
+
     const certificateBatchMintedEvents = await batchFactoryContract.queryFilter(
         batchFactoryContract.filters.CertificateBatchMinted(),
         fromBlock,
     );
-    console.info(`fetched ${redemptionSetEvents.length} REDEMPTION_SET events from EWC`);
 
-    const dbRedemptionEventInputs: Array<Prisma.EventCreateInput> = redemptionSetEvents.flatMap(e => {
-        const certificateIds = certificateBatchMintedEvents.flatMap(cbme => {
-            if (
-                (e.args as unknown as RedemptionSetArgs).batchId ===
-                (cbme.args as unknown as CertificateBatchMintedArgs).batchId
-            ) {
-                return (cbme.args as unknown as CertificateBatchMintedArgs).certificateIds;
-            }
-            return [];
-        });
-        return certificateIds.map((id, i) => {
-            return {
-                tokenId: id.toString(),
-                chain: Chain.ENERGY_WEB,
-                eventType: EventType.REDEMPTION_SET,
-                data: {
-                    batchId: (e.args as unknown as RedemptionSetArgs).batchId,
-                    redemptionStatement: (e.args as unknown as RedemptionSetArgs).redemptionStatement,
-                    storagePointer: (e.args as unknown as RedemptionSetArgs).storagePointer,
-                } as Prisma.InputJsonObject,
-                blockHeight: e.blockNumber.toString(),
-                transactionHash: e.transactionHash,
-                // TODO, this is wrong but as we set redemption statement ace for everything this is the only way to ensure that we conserve proper db
-                logIndex: e.logIndex + i,
-            };
-        });
-    });
+    console.info(`fetched ${certificateBatchMintedEvents.length} BATCH_MINTED events from EWC`);
 
-    //Fetch claim events and store them
     const claimSingleEvents = await registryExtendedContract.queryFilter(
         registryExtendedContract.filters.ClaimSingle(),
         fromBlock,
     );
-    const dbClaimEventInputs: Array<Prisma.EventCreateInput> = claimSingleEvents.map(e => {
-        return {
-            tokenId: (e.args as unknown as ClaimSingleArgs)._id.toString(),
-            chain: Chain.ENERGY_WEB,
-            eventType: EventType.CLAIM,
-            data: {
-                _claimIssuer: (e.args as unknown as ClaimSingleArgs)._claimIssuer,
-                _claimSubject: (e.args as unknown as ClaimSingleArgs)._claimSubject,
-                _topic: (e.args as unknown as ClaimSingleArgs)._topic.toString(),
-                _id: (e.args as unknown as ClaimSingleArgs)._id.toString(),
-                _value: (e.args as unknown as ClaimSingleArgs)._value.toString(),
-                _claimData: (e.args as unknown as ClaimSingleArgs)._claimData,
-            },
-            blockHeight: e.blockNumber.toString(),
-            transactionHash: e.transactionHash,
-            logIndex: e.logIndex,
-        };
-    });
 
     console.info(`fetched ${claimSingleEvents.length} CLAIM events from EWC`);
 
-    const dbEventInputs = [...dbMintEventInputs, ...dbRedemptionEventInputs, ...dbClaimEventInputs].sort(
-        (a, b) => parseInt(a.blockHeight, 10) - parseInt(b.blockHeight, 1),
-    );
+    // Iterate through all redemption statement on-chain. Sorting by block number to tackle oldest to most recent.
+    const claims: Claim[] = [];
 
-    if (dbEventInputs.length === 0) {
-        console.info('no new EWC events to store in the database');
-        return;
-    }
+    for (const redemptionSetEvent of redemptionSetEvents.sort((a, b) => a.blockNumber - b.blockNumber)) {
+        const { batchId: redemptionSetEventBatchId } = redemptionSetEvent.args as unknown as RedemptionSetArgs;
+        // Loop through CertificateBatchMinted events, filtering when it concerns the current batch we are iterating over.
+        for (const certificateBatchMintedEvent of certificateBatchMintedEvents) {
+            const { batchId: certificateBatchMintedEventBatchId, certificateIds } =
+                certificateBatchMintedEvent.args as unknown as CertificateBatchMintedArgs;
+            // If this is the batch ID we are looking for, continue to construct data.
+            if (redemptionSetEventBatchId === certificateBatchMintedEventBatchId) {
+                // Iterate over all certificates IDs that are related to the current batch we are iterating over.
+                for (const certificateId of certificateIds) {
+                    // If no agreement contains certificate then it does not concern us.
+                    if (!certificatesInAgreement[certificateId.toString()]) {
+                        continue;
+                    }
+                    // Looking for minting events concerning the certificate ID we are iterating over.
+                    for (const mintEvent of mintEvents) {
+                        const { id: mintEventCertificateId } = mintEvent.args as unknown as MintedArgs;
 
-    const dbEvents: PrismaEvent[] = [];
+                        if (mintEventCertificateId.eq(certificateId)) {
+                            // Looking for claim events concerning the certificate ID we are iterating over.
+                            for (const claimSingleEvent of claimSingleEvents) {
+                                const {
+                                    _id: id,
+                                    _claimSubject: claimSubject,
+                                    _value: value,
+                                    _claimIssuer: claimIssuer,
+                                    _claimData: claimData,
+                                    _topic: topic,
+                                } = claimSingleEvent.args as unknown as ClaimSingleArgs;
+                                if (id.eq(certificateId)) {
+                                    const claimDataDecoded = ClaimDataCoder.decode(claimData);
 
-    const moduloQuarter = (dbEventInputs.length - 1) % 4;
-    const quarterSize = (dbEventInputs.length - 1 - moduloQuarter) / 4;
-    for (const quarterPosition of [1, 2, 3, 4]) {
-        const startIndex = (quarterPosition - 1) * quarterSize;
-        const endIndex =
-            quarterPosition === 4 ? quarterPosition * quarterSize + moduloQuarter : quarterPosition * quarterSize;
-
-        for (const data of dbEventInputs.slice(startIndex, endIndex)) {
-            dbEvents.push(
-                await prisma.event.create({
-                    data,
-                }),
-            );
+                                    claims.push({
+                                        tokenId: id.toString(),
+                                        claimIssuer,
+                                        claimSubject,
+                                        topic: topic.toString(),
+                                        value: value.toString(),
+                                        claimData: claimData.toString(),
+                                        claimDataDecoded: JSON.stringify(claimDataDecoded),
+                                        transactionHash: claimSingleEvent.transactionHash,
+                                        claimSingleEvent: claimSingleEvent,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
-    const latestEvent = await prisma.event.create({
-        data: dbEventInputs.slice(dbEventInputs.length - 1)[0],
+    const frep = await import('@filecoin-renewable-energy-purchases/js-api/src/js/index.js');
+
+    const renewableEnergyPurchases = new frep.RenewableEnergyPurchases();
+
+    const certificatesGH: AllocationGithub[] = await renewableEnergyPurchases.getAllAllocationsFromGithub();
+
+    const certificatesGHRegistry: { [key: string]: AllocationGithub } = {};
+
+    certificatesGH.forEach(c => {
+        certificatesGHRegistry[c.UUID] = c;
     });
 
-    dbEvents.push(latestEvent);
+    console.info(`fetched Filecoin Renewable Energy purchase`);
 
-    console.info(`created a total of ${dbEvents.length} events object from EWC in the database`);
+    const recMarketplaceDataRegistry: {
+        [key: string]: {
+            metadata: string;
+            rawArgs: (string | string[] | boolean[])[];
+            broker: string;
+            ewcTokenIds: string[];
+        };
+    } = {};
 
-    const certificates: CertificateRegistry = {} as CertificateRegistry;
-    // Loop through CertificateBatchMinted events, filtering when it concerns the current batch we are iterating over.
-    // TODO when we can actually get certificate, set metadata
-    for (const certificateBatchMintedEvent of certificateBatchMintedEvents) {
-        // Get CertificateBatchMinted args.
-        const { certificateIds } = certificateBatchMintedEvent.args as unknown as CertificateBatchMintedArgs;
-        // Iterate over all certificates IDs that are related to the current batch we are iterating over.
-        for (const certificateId of certificateIds) {
-            // Looking for minting events concerning the certificate ID we are iterating over.
-            for (const mintEvent of mintEvents) {
-                const { id: mintEventCertificateId, value: mintedValue, to } = mintEvent.args as unknown as MintedArgs;
+    for (const a of agreements) {
+        // Decode agreement metadata
+        const agreementMetadata: IAgreementMetadata = JSON.parse(a.metadataDecoded);
 
-                if (mintEventCertificateId.eq(certificateId)) {
-                    // Temporary buffer for claims related to certificate ID.
-                    const claims = [] as Claim[];
-                    // Looking for claim events concerning the certificate ID we are iterating over.
-                    for (const claimSingleEvent of claimSingleEvents) {
-                        const {
-                            _id: claimSingleEventCertificateId,
-                            _claimSubject: claimSubject,
-                            _value: claimedValue,
-                            _claimData: claimData,
-                        } = claimSingleEvent.args as unknown as ClaimSingleArgs;
-                        if (claimSingleEventCertificateId.eq(certificateId)) {
-                            let claimDataDecoded = decodeClaimV3(claimData);
-                            if (!claimDataDecoded) {
-                                claimDataDecoded = decodeClaimV1(claimData);
-                            }
-                            if (!claimDataDecoded) {
-                                claimDataDecoded = decodeClaimV2(claimData);
-                            }
+        if (
+            !Object.keys(recMarketplaceDataRegistry).includes(
+                certificatesGHRegistry[agreementMetadata.agreementId].contract_id,
+            )
+        ) {
+            const metadataToIPLD: Metadata = {
+                contractId: certificatesGHRegistry[agreementMetadata.agreementId].contract_id,
+                productType: certificatesGHRegistry[agreementMetadata.agreementId].productType,
+                label: certificatesGHRegistry[agreementMetadata.agreementId].label || '',
+                energySources: certificatesGHRegistry[agreementMetadata.agreementId].energySources,
+                contractDate: certificatesGHRegistry[agreementMetadata.agreementId].contractDate.toString(),
+                deliveryDate: certificatesGHRegistry[agreementMetadata.agreementId].deliveryDate.toString(),
+                reportingStart: certificatesGHRegistry[agreementMetadata.agreementId].reportingStart,
+                reportingEnd: certificatesGHRegistry[agreementMetadata.agreementId].reportingEnd,
+                sellerName: certificatesGHRegistry[agreementMetadata.agreementId].sellerName,
+                sellerAddress: certificatesGHRegistry[agreementMetadata.agreementId].sellerAddress,
+                country: certificatesGHRegistry[agreementMetadata.agreementId].country,
+                region: certificatesGHRegistry[agreementMetadata.agreementId].region || '',
+                volume: certificatesGHRegistry[agreementMetadata.agreementId].contract_volume_MWh * 1000000,
+            };
 
-                            claims.push({
-                                claimSubject,
-                                claimSingleEvent,
-                                value: claimedValue,
-                            });
-                        }
-                    }
-                    certificates[certificateId.toString()] = {
-                        certificateId,
-                        broker: to,
-                        value: mintedValue,
-                        mintEvent,
-                        claims,
-                    };
+            const cid = await store(a.seller, [metadataToIPLD]);
+
+            const rawArgs: (string | string[] | boolean[])[] = [
+                cid,
+                (certificatesGHRegistry[agreementMetadata.agreementId].contract_volume_MWh * 1000000).toString(),
+                [],
+                [],
+                [],
+            ];
+
+            recMarketplaceDataRegistry[certificatesGHRegistry[agreementMetadata.agreementId].contract_id] = {
+                broker: a.seller,
+                rawArgs,
+                metadata: JSON.stringify(metadataToIPLD),
+                ewcTokenIds: [],
+            };
+
+            console.info(
+                `prepared collection for bridging with CID: ${
+                    recMarketplaceDataRegistry[certificatesGHRegistry[agreementMetadata.agreementId].contract_id]
+                        .rawArgs[0] as string
+                }`,
+            );
+        }
+
+        for (const claim of claims) {
+            const claimMetadata: IClaimData = JSON.parse(claim.claimDataDecoded);
+
+            if (
+                a.certificateIds.includes(claim.tokenId) &&
+                a.agreementAddress === claim.claimIssuer &&
+                a.buyer === claim.claimSubject
+            ) {
+                const beneficiary = claimMetadata.beneficiary.split(';')[1];
+
+                (
+                    recMarketplaceDataRegistry[certificatesGHRegistry[agreementMetadata.agreementId].contract_id]
+                        .rawArgs[2] as string[]
+                ).push(filecoinF0ToEthAddress(beneficiary));
+                (
+                    recMarketplaceDataRegistry[certificatesGHRegistry[agreementMetadata.agreementId].contract_id]
+                        .rawArgs[3] as string[]
+                ).push(claim.value);
+                (
+                    recMarketplaceDataRegistry[certificatesGHRegistry[agreementMetadata.agreementId].contract_id]
+                        .rawArgs[4] as boolean[]
+                ).push(true);
+                if (
+                    !recMarketplaceDataRegistry[
+                        certificatesGHRegistry[agreementMetadata.agreementId].contract_id
+                    ].ewcTokenIds.includes(claim.tokenId)
+                ) {
+                    recMarketplaceDataRegistry[
+                        certificatesGHRegistry[agreementMetadata.agreementId].contract_id
+                    ].ewcTokenIds.push(claim.tokenId);
                 }
             }
         }
     }
 
     // Generate all transaction objects that we'll need.
-    const transactions: Array<Prisma.TransactionCreateManyInput> = Object.values(certificates).map(c => {
+    const transactions: Array<Prisma.TransactionCreateManyInput> = Object.values(recMarketplaceDataRegistry).map(d => {
         return {
             transactionType: TransactionType.MINT,
-            rawArgs: [
-                'ewc-things',
-                c.value.toString(),
-                c.claims.map(cl => cl.claimSubject),
-                c.claims.map(cl => cl.value.toString()),
-                c.claims.map(() => true),
-            ],
+            rawArgs: d.rawArgs,
         };
     });
 
-    const res = await prisma.transaction
+    const resTransactions = await prisma.transaction
         .createMany({
             data: transactions,
             skipDuplicates: true,
@@ -267,28 +544,53 @@ const processEvents = async (prisma: PrismaClient, fromBlock: number) => {
         .catch(() => {
             console.error(`could not create transactions document`);
         });
-    if (!res) {
+    if (!resTransactions) {
         throw new Error(`could not process Energy Web Chain data into bridge transactions`);
     }
 
-    console.info(`created ${res.count} transactions object in the database`);
+    console.info(`created ${resTransactions.count} transactions object in the database`);
 
     // Generate all transaction objects that we'll need.
-    const collections: Array<Prisma.CollectionCreateInput> = Object.values(certificates).map(c => {
+    const metadatas: Array<Prisma.MetadataCreateManyInput> = Object.values(recMarketplaceDataRegistry).map(d => {
+        const metadata: Metadata = JSON.parse(d.metadata);
         return {
-            energyWebTokenId: c.certificateId.toString(),
-            events: {
-                connect: dbEvents
-                    .filter(dbe => {
-                        return dbe.tokenId === c.certificateId.toString();
-                    })
-                    .map(dbe => {
-                        return {
-                            id: dbe.id,
-                        };
-                    }),
+            cid: d.rawArgs[0] as string,
+            contractId: metadata.contractId,
+            productType: metadata.productType,
+            label: metadata.label,
+            energySources: metadata.energySources,
+            contractDate: metadata.contractDate,
+            deliveryDate: metadata.deliveryDate,
+            reportingStart: metadata.reportingStart,
+            reportingEnd: metadata.reportingEnd,
+            sellerName: metadata.sellerName,
+            sellerAddress: metadata.sellerAddress,
+            country: metadata.country,
+            region: metadata.region,
+            volume: metadata.volume.toString(),
+            createdBy: d.broker,
+            minted: false,
+        };
+    });
+
+    const resMetadatas = await prisma.$transaction(metadatas.map(m => prisma.metadata.create({ data: m })));
+    if (resMetadatas.length === 0 && metadatas.length > 0) {
+        throw new Error(`could not process Energy Web Chain data into bridge transactions`);
+    }
+
+    console.info(`created ${resMetadatas.length} transactions object in the database`);
+
+    // Generate all transaction objects that we'll need.
+    const collections: Array<Prisma.CollectionCreateInput> = Object.values(recMarketplaceDataRegistry).map(d => {
+        return {
+            energyWebTokenIds: d.ewcTokenIds,
+            metadata: {
+                connect: {
+                    id: resMetadatas.filter(m => {
+                        return m.cid === d.rawArgs[0];
+                    })[0].id,
+                },
             },
-            //TODO for now we generate all without metadata as we can not parse them from EWC anyway
         };
     });
 
@@ -310,39 +612,19 @@ const processEvents = async (prisma: PrismaClient, fromBlock: number) => {
 };
 
 export const seedEwcData = async (prisma: PrismaClient) => {
-    const aggregate = await prisma.event
-        .aggregate({
-            _max: {
-                id: true,
-            },
+    const utils = await prisma.utils
+        .findUnique({
             where: {
-                chain: Chain.ENERGY_WEB,
+                id: 1,
             },
         })
-        .catch((err: Error) => console.error(`couldn't find highest id in Event table: ${err.message}`));
+        .catch(() => {
+            console.error(`could not find data utils`);
+        });
 
-    // Initialize block to start off at chain initialization
-    let fromBlock = '0';
-
-    // If we have a valid Id of an event start of it
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (aggregate?._max.id) {
-        const latestHandledEvent = await prisma.event
-            .findUnique({
-                where: {
-                    id: aggregate._max.id,
-                },
-            })
-            .catch((err: Error) =>
-                console.error(`couldn't find event data based on id ${aggregate?._max.id || ''}: ${err.message}`),
-            );
-
-        if (!latestHandledEvent) {
-            throw new Error(`looking for an event of id ${aggregate?._max.id || ''} that does not exist`);
-        }
-
-        fromBlock = latestHandledEvent.blockHeight;
+    if (!utils) {
+        throw Error('Utils table should be properly initialize before seeding data from EWC');
     }
 
-    await processEvents(prisma, parseInt(fromBlock, 10) + 1);
+    await processEvents(prisma, utils ? parseInt(utils.ewcBlockHeight, 10) + 1 : 1);
 };

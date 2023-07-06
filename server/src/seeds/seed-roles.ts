@@ -1,12 +1,6 @@
-import {
-    AUDITOR_ROLE,
-    getCurrentBlockHeight,
-    getRecMarketplaceContractInstance,
-    getRoleJsonKey,
-    initRoles,
-} from '../utils/web3-utils';
+import { AUDITOR_ROLE, getRecMarketplaceContractInstance, getRoleJsonKey } from '../utils/web3-utils';
 import { isObjKey } from '../utils';
-import { Chain, EventType, PrismaClient } from '@prisma/client';
+import { EventType, PrismaClient } from '@prisma/client';
 import { getDeploymentBlockHeightEnv } from '../utils/env';
 import { Event } from '@ethersproject/contracts';
 
@@ -151,9 +145,6 @@ export const constructRolesTable = async (prisma: PrismaClient) => {
             _max: {
                 id: true,
             },
-            where: {
-                chain: Chain.FILECOIN,
-            },
         })
         .catch((err: Error) => console.error(`couldn't find highest id in Event table: ${err.message}`));
 
@@ -180,5 +171,7 @@ export const constructRolesTable = async (prisma: PrismaClient) => {
         fromBlock = latestHandledEvent.blockHeight;
     }
 
-    await seedRoles(prisma, parseInt(fromBlock, 10));
+    await seedRoles(prisma, parseInt(fromBlock, 10) + 1).catch((err: Error) => {
+        console.error(`error when seeding roles from block ${fromBlock}: ${err.message}`);
+    });
 };

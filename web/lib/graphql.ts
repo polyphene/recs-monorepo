@@ -17,7 +17,7 @@ export const FILTERED_METADATA = gql`
       reportingStart
       reportingEnd
       energySources
-      volumeMWh
+      volume
       minted
     }
   }
@@ -32,7 +32,7 @@ export const METADATA_BY_CID = gql`
       reportingStart
       reportingEnd
       energySources
-      volumeMWh
+      volume
       minted
     }
   }
@@ -112,7 +112,6 @@ export const FILTERED_COLLECTIONS = gql`
         logIndex
         tokenId
         transactionHash
-        chain
         data {
           ... on RoleEventData {
             __typename

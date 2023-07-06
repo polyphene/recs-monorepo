@@ -38,7 +38,7 @@ export type Metadata = {
   sellerAddress: string;
   country: string;
   region: string;
-  volumeMWh: number;
+  volume: number;
 };
 
 export type MetadataUpload = {
@@ -120,7 +120,11 @@ export const store = async (
     variables: {
       input: {
         metadata: encodedMetadata.map((m, i) => {
-          return { cid: m.root.cid.toString(), ...metadata[i] };
+          return {
+            cid: m.root.cid.toString(),
+            ...metadata[i],
+            volume: metadata[i].volume.toString(),
+          };
         }),
         broker,
       },

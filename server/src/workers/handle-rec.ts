@@ -1,23 +1,54 @@
-import { BigNumber } from 'ethers';
+import { BigNumber, Contract } from 'ethers';
 import { getCurrentBlockHeight, getRecMarketplaceContractInstance } from '../utils/web3-utils';
 import { EventType, PrismaClient } from '@prisma/client';
+import { sleep } from '../utils/sleep';
 
-export const handleMint = async (operator: string, from: string, to: string, id: BigNumber, value: BigNumber) => {
-    // Get event metadata
-    const blockHeight = await getCurrentBlockHeight();
+async function checkNodeDataUpToDate(
+    recMarketplaceContract: Contract,
+    expectedId: BigNumber,
+    maxRetries = 3,
+    currentRetry = 0,
+): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+    const id: BigNumber = await recMarketplaceContract.nextId();
+    if (!id.gt(expectedId)) {
+        if (currentRetry < maxRetries) {
+            console.warn(
+                `node not yet up to date (nextId=${id.toString()},id=${expectedId.toString()},try=${
+                    currentRetry + 1
+                },limit=${maxRetries}), retrying...`,
+            );
+            await sleep(5000);
+            await checkNodeDataUpToDate(recMarketplaceContract, expectedId, maxRetries, currentRetry + 1); // Recursive call
+            return;
+        } else {
+            throw new Error('Max retries exceeded');
+        }
+    } else {
+        console.info(`node up to date for token ID ${expectedId.toString()}`);
+    }
+}
+export const handleMint = async (
+    prisma: PrismaClient,
+    blockHeight: number,
+    transactionHash: string,
+    logIndex: number,
+    operator: string,
+    from: string,
+    to: string,
+    id: BigNumber,
+    value: BigNumber,
+) => {
     const recMarketplace = getRecMarketplaceContractInstance();
 
-    // Fetch TransferSingle events from the chain, we will only handle one of them as it is most likely the one
-    // we are looking for
-    const tokenMinted = await recMarketplace.queryFilter(
-        recMarketplace.filters.TransferSingle(operator, from, to),
-        blockHeight,
-    );
+    // This is quite bad, but sometimes we get a new block but the transactions are not yet taken into account in Lotus
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+    await checkNodeDataUpToDate(recMarketplace, id, 5).catch((err: Error) => {
+        console.error(`could not fetch data for transaction ${transactionHash} in block: ${blockHeight}`);
+    });
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-call
     const uri: string = await recMarketplace.uri(id);
-
-    const prisma = new PrismaClient();
 
     // Update minted status of metadata
     // TODO would be ideal to do upsert here in case someone is not using our app to mint (low probability)
@@ -70,8 +101,8 @@ export const handleMint = async (operator: string, from: string, to: string, id:
             value: value.toString(),
         },
         blockHeight: blockHeight.toString(),
-        transactionHash: tokenMinted[0].transactionHash,
-        logIndex: tokenMinted[0].logIndex,
+        transactionHash: transactionHash,
+        logIndex: logIndex,
         collectionId: collection.id,
     };
     // Upsert ensures that we are only having one event record per event
@@ -80,8 +111,8 @@ export const handleMint = async (operator: string, from: string, to: string, id:
             where: {
                 blockHeight_transactionHash_logIndex: {
                     blockHeight: blockHeight.toString(),
-                    transactionHash: tokenMinted[0].transactionHash,
-                    logIndex: tokenMinted[0].logIndex,
+                    transactionHash: transactionHash,
+                    logIndex: logIndex,
                 },
             },
             update: mintData,
@@ -92,20 +123,17 @@ export const handleMint = async (operator: string, from: string, to: string, id:
         });
 };
 
-export const handleTransfer = async (operator: string, from: string, to: string, id: BigNumber, value: BigNumber) => {
-    // Get event metadata
-    const blockHeight = await getCurrentBlockHeight();
-    const recMarketplace = getRecMarketplaceContractInstance();
-
-    // Fetch TransferSingle events from the chain, we will only handle one of them as it is most likely the one
-    // we are looking for
-    const tokenTransfered = await recMarketplace.queryFilter(
-        recMarketplace.filters.TransferSingle(operator, from, to),
-        blockHeight,
-    );
-
-    const prisma = new PrismaClient();
-
+export const handleTransfer = async (
+    prisma: PrismaClient,
+    blockHeight: number,
+    transactionHash: string,
+    logIndex: number,
+    operator: string,
+    from: string,
+    to: string,
+    id: BigNumber,
+    value: BigNumber,
+) => {
     const collection = await prisma.collection
         .findUnique({
             where: {
@@ -128,8 +156,8 @@ export const handleTransfer = async (operator: string, from: string, to: string,
             value: value.toString(),
         },
         blockHeight: blockHeight.toString(),
-        transactionHash: tokenTransfered[0].transactionHash,
-        logIndex: tokenTransfered[0].logIndex,
+        transactionHash: transactionHash,
+        logIndex: logIndex,
         collectionId: collection.id,
     };
     await prisma.event
@@ -137,8 +165,8 @@ export const handleTransfer = async (operator: string, from: string, to: string,
             where: {
                 blockHeight_transactionHash_logIndex: {
                     blockHeight: blockHeight.toString(),
-                    transactionHash: tokenTransfered[0].transactionHash,
-                    logIndex: tokenTransfered[0].logIndex,
+                    transactionHash: transactionHash,
+                    logIndex: logIndex,
                 },
             },
             update: transferData,
@@ -149,20 +177,15 @@ export const handleTransfer = async (operator: string, from: string, to: string,
         });
 };
 
-export const handleRedeem = async (owner: string, tokenId: BigNumber, amount: BigNumber) => {
-    // Get event metadata
-    const blockHeight = await getCurrentBlockHeight();
-    const recMarketplace = getRecMarketplaceContractInstance();
-
-    // Fetch Redeem events from the chain, we will only handle one of them as it is most likely the one
-    // we are looking for
-    const tokenRedeemed = await recMarketplace.queryFilter(
-        recMarketplace.filters.Redeem(owner, tokenId, amount),
-        blockHeight,
-    );
-
-    const prisma = new PrismaClient();
-
+export const handleRedeem = async (
+    prisma: PrismaClient,
+    blockHeight: number,
+    transactionHash: string,
+    logIndex: number,
+    owner: string,
+    tokenId: BigNumber,
+    amount: BigNumber,
+) => {
     const collection = await prisma.collection
         .findUnique({
             where: {
@@ -183,8 +206,8 @@ export const handleRedeem = async (owner: string, tokenId: BigNumber, amount: Bi
             amount: amount.toString(),
         },
         blockHeight: blockHeight.toString(),
-        transactionHash: tokenRedeemed[0].transactionHash,
-        logIndex: tokenRedeemed[0].logIndex,
+        transactionHash: transactionHash,
+        logIndex: logIndex,
         collectionId: collection.id,
     };
     await prisma.event
@@ -192,8 +215,8 @@ export const handleRedeem = async (owner: string, tokenId: BigNumber, amount: Bi
             where: {
                 blockHeight_transactionHash_logIndex: {
                     blockHeight: blockHeight.toString(),
-                    transactionHash: tokenRedeemed[0].transactionHash,
-                    logIndex: tokenRedeemed[0].logIndex,
+                    transactionHash: transactionHash,
+                    logIndex: logIndex,
                 },
             },
             update: redeemData,

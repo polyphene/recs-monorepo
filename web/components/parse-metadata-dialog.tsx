@@ -124,7 +124,8 @@ export function ParseMetadata() {
                         sellerAddress: sellerAddress?.toString() || '',
                         country: country?.toString() || '',
                         region: region?.toString() || '',
-                        volumeMWh: volume_MWh,
+                        // MWh to Wh
+                        volume: volume_MWh * 1000000,
                       };
                     }
                   )

@@ -82,6 +82,15 @@ export const getBatchFactoryAddressEnv = (): string => {
     return env;
 };
 
+export const getAgreementFactoryAddressEnv = (): string => {
+    const env = process.env.AGREEMENT_FACTORY_ADDRESS;
+    if (env === undefined) {
+        throw new Error('AGREEMENT_FACTORY_ADDRESS environment variable is not set');
+    }
+
+    return env;
+};
+
 /*
  * Bridge related environments
  */
@@ -104,5 +113,6 @@ export const loadEnv = (): void => {
     getEwfHttpUriEnv();
     getRegistryExtendedAddressEnv();
     getBatchFactoryAddressEnv();
+    getAgreementFactoryAddressEnv();
     getBridgePrivateKeyEnv();
 };

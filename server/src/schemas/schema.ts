@@ -5,7 +5,6 @@ import { GraphQLContext } from '../context';
 import { CID } from 'multiformats';
 import { GraphQLError } from 'graphql/error';
 import { isAddress } from 'ethers/lib/utils';
-import { BigNumber } from 'ethers';
 
 const typeDefinitions = /* GraphQL */ `
     ${DateTimeTypeDefinition}
@@ -27,7 +26,7 @@ const typeDefinitions = /* GraphQL */ `
     type Collection {
         id: ID!
         filecoinTokenId: String
-        energyWebTokenId: String
+        energyWebTokenIds: [String!]!
         events: [Event!]!
         metadata: Metadata
         createdAt: DateTime!
@@ -40,7 +39,6 @@ const typeDefinitions = /* GraphQL */ `
 
     type Event {
         id: ID!
-        chain: String!
         collection: Collection
         tokenId: String
         eventType: String!
@@ -245,7 +243,7 @@ const resolvers = {
     Collection: {
         id: (parent: Collection) => parent.id,
         filecoinTokenId: (parent: Collection) => parent.filecoinTokenId,
-        energyWebTokenId: (parent: Collection) => parent.energyWebTokenId,
+        energyWebTokenIds: (parent: Collection) => parent.energyWebTokenIds,
         events(parent: Collection, args: Record<string, never>, context: GraphQLContext) {
             return context.prisma.event.findMany({
                 where: {
@@ -339,7 +337,6 @@ const resolvers = {
         transactionHash: (parent: Event) => parent.transactionHash,
         logIndex: (parent: Event) => parent.logIndex,
         createdAt: (parent: Event) => parent.createdAt,
-        chain: (parent: Event) => parent.chain,
     },
     Query: {
         async metadata(parent: unknown, args: { id: string }, context: GraphQLContext): Promise<Metadata | null> {
@@ -421,7 +418,7 @@ const resolvers = {
                 include: { metadata: true, events: true },
                 where: {
                     filecoinTokenId: filecoinTokenId || undefined,
-                    energyWebTokenId: energyWebTokenId || undefined,
+                    energyWebTokenIds: energyWebTokenId ? { has: energyWebTokenId } : undefined,
                 },
             };
 
@@ -436,7 +433,7 @@ const resolvers = {
                 include: { metadata: true, events: true },
                 where: {
                     NOT: {
-                        energyWebTokenId: null,
+                        energyWebTokenIds: { isEmpty: false },
                     },
                 },
             };
@@ -453,6 +450,7 @@ const resolvers = {
             for (const m of metadata) {
                 // Check CID input
                 try {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
                     CID.parse(m.cid);
                 } catch (e) {
                     return Promise.reject(
@@ -486,7 +484,7 @@ const resolvers = {
                             collection: {
                                 create: {
                                     filecoinTokenId: null,
-                                    energyWebTokenId: null,
+                                    energyWebTokenIds: [],
                                 },
                             },
                         },

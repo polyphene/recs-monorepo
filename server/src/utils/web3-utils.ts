@@ -1,15 +1,19 @@
 import {
+    getAgreementFactoryAddressEnv,
     getBatchFactoryAddressEnv,
+    getBridgePrivateKeyEnv,
     getEthHttpUriEnv,
     getEwfHttpUriEnv,
     getRecMarketplaceAddressEnv,
     getRegistryExtendedAddressEnv,
 } from '../utils/env';
-import { BytesLike, ethers } from 'ethers';
+import { BytesLike, ethers, getDefaultProvider, Wallet } from 'ethers';
 import recMarketplaceConfig from '../config/rec-marketplace';
 import registryExtendedConfig from '../config/registry-extended';
 import batchFactoryConfig from '../config/batch-factory';
+import agreementFactoryConfig from '../config/agreement-factory';
 import { defaultAbiCoder } from 'ethers/lib/utils';
+import { PrismaClient } from '@prisma/client';
 
 export const getRecMarketplaceContractInstance = () => {
     const recMarketplaceAddress = getRecMarketplaceAddressEnv();
@@ -18,14 +22,22 @@ export const getRecMarketplaceContractInstance = () => {
     return new ethers.Contract(recMarketplaceAddress, recMarketplaceConfig.abi, ethProvider);
 };
 
+export const getSignerRecMarketplaceContractInstance = () => {
+    const recMarketplaceAddress = getRecMarketplaceAddressEnv();
+
+    return new ethers.Contract(recMarketplaceAddress, recMarketplaceConfig.abi, getWallet());
+};
+
 export const getEwfContractsInstances = () => {
     const registryExtendedAddress = getRegistryExtendedAddressEnv();
     const batchFactoryAddress = getBatchFactoryAddressEnv();
+    const agreementFactoryAddress = getAgreementFactoryAddressEnv();
     const ewfProvider = ethers.getDefaultProvider(getEwfHttpUriEnv());
 
     return {
         registryExtendedContract: new ethers.Contract(registryExtendedAddress, registryExtendedConfig.abi, ewfProvider),
         batchFactoryContract: new ethers.Contract(batchFactoryAddress, batchFactoryConfig.abi, ewfProvider),
+        agreementFactoryContract: new ethers.Contract(agreementFactoryAddress, agreementFactoryConfig.abi, ewfProvider),
     };
 };
 
@@ -71,109 +83,33 @@ export const initRoles = async () => {
     AUDITOR_ROLE = await recMarketplace.AUDITOR_ROLE();
 };
 
-/*****************************************
- * EWC utils
- *****************************************/
+export const initChainUtils = async (prisma: PrismaClient) => {
+    const ethProvider = ethers.getDefaultProvider(getEthHttpUriEnv());
 
-export type ClaimData = {
-    beneficiary: string;
-    region: string;
-    countryCode: string;
-    periodStartDate: string;
-    periodEndDate: string;
-    purpose: string;
-    consumptionEntityID: string;
-    proofID: string;
-    location: string;
-};
+    const utils = await prisma.utils
+        .findUnique({
+            where: {
+                id: 1,
+            },
+        })
+        .catch(() => {
+            console.error(`could not find data utils`);
+        });
 
-// Sourced from EW repository: https://github.com/energywebfoundation/origin/blob/dc4930d80d4703d22beee27acac42db9157e27c1/packages/traceability/issuer/src/blockchain-facade/CertificateUtils.ts#L43-L68
-export const decodeClaimV1 = (data: BytesLike): ClaimData | null => {
-    try {
-        const [beneficiary, location, countryCode, periodStartDate, periodEndDate, purpose]: ReadonlyArray<string> =
-            defaultAbiCoder.decode(['string', 'string', 'string', 'string', 'string', 'string'], data);
-
-        // If any field is undefined it means that we are not decoding over the proper data structure, so returning null
-        if (
-            beneficiary === undefined ||
-            location === undefined ||
-            countryCode === undefined ||
-            periodStartDate === undefined ||
-            periodEndDate === undefined ||
-            purpose === undefined
-        ) {
-            return null;
-        }
-
-        return {
-            beneficiary,
-            region: '',
-            countryCode,
-            periodStartDate,
-            periodEndDate,
-            purpose,
-            consumptionEntityID: '',
-            proofID: '',
-            location,
-        };
-    } catch {
-        return null;
+    if (!utils) {
+        await prisma.utils
+            .create({
+                data: {
+                    ewcBlockHeight: '0',
+                    filecoinBlockHeight: (await ethProvider.getBlock('latest')).number.toString(),
+                },
+            })
+            .catch(() => {
+                console.error(`could not initialize data utils`);
+            });
     }
 };
 
-// Sourced from EW repository: https://github.com/energywebfoundation/origin/blob/dc4930d80d4703d22beee27acac42db9157e27c1/packages/traceability/issuer/src/blockchain-facade/CertificateUtils.ts#L43-L68
-export const decodeClaimV2 = (data: BytesLike): ClaimData | null => {
-    try {
-        const [claimData]: ReadonlyArray<string> = defaultAbiCoder.decode(['string'], data);
-
-        return JSON.parse(claimData) as ClaimData;
-    } catch {
-        return null;
-    }
-};
-
-// Sourced from messages sent to Moca
-export const decodeClaimV3 = (data: BytesLike): ClaimData | null => {
-    try {
-        const [
-            beneficiary,
-            region,
-            countryCode,
-            periodStartDate,
-            periodEndDate,
-            purpose,
-            consumptionEntityID,
-            proofID,
-        ]: ReadonlyArray<string> = defaultAbiCoder.decode(
-            ['string', 'string', 'string', 'string', 'string', 'string', 'string', 'string'],
-            data,
-        );
-
-        if (
-            beneficiary === undefined ||
-            region === undefined ||
-            countryCode === undefined ||
-            periodStartDate === undefined ||
-            periodEndDate === undefined ||
-            purpose === undefined ||
-            consumptionEntityID === undefined ||
-            proofID === undefined
-        ) {
-            return null;
-        }
-
-        return {
-            beneficiary,
-            region,
-            countryCode,
-            periodStartDate,
-            periodEndDate,
-            purpose,
-            consumptionEntityID,
-            proofID,
-            location: '',
-        };
-    } catch {
-        return null;
-    }
+export const getWallet = (): Wallet => {
+    return new Wallet(getBridgePrivateKeyEnv(), ethers.getDefaultProvider(getEthHttpUriEnv()));
 };
