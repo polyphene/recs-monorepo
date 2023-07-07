@@ -9,7 +9,6 @@ import { constructRolesTable } from './seeds/seed-roles';
 import { BigNumber, constants, Event } from 'ethers';
 import { seedEwcData } from './seeds/seed-ewc-data';
 import { bridgeTransactions } from './utils/bridge';
-import { prisma } from '@prisma/client';
 
 async function main() {
     // Load environment variable to ensure that they are properly set
@@ -27,6 +26,13 @@ async function main() {
         console.error(`Error while trying to initialize chain utils in DB: ${err.message}`),
     );
 
+    const yoga = createYoga({ schema, context, plugins: [] });
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    const server = createServer(yoga);
+    server.listen(getPortEnv(), () => {
+        console.info(`Server is running on port ${getPortEnv()}`);
+    });
+
     // Seed role table
     await constructRolesTable(context.prisma).catch((err: Error) =>
         console.error(`Error while trying to seed roles table: ${err.message}`),
@@ -42,17 +48,9 @@ async function main() {
         console.error(`Error while trying to bridge: ${err.message}`),
     );
 
-    const yoga = createYoga({ schema, context, plugins: [] });
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    const server = createServer(yoga);
-
     searchNewBlock(context.prisma).catch((err: Error) =>
         console.error(`Error while looking for a new block: ${err.message}`),
     );
-
-    server.listen(getPortEnv(), () => {
-        console.info(`Server is running on port ${getPortEnv()}`);
-    });
 }
 
 main().catch(console.error);
