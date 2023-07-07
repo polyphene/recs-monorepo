@@ -28,11 +28,19 @@ For the server to be able to start up, a few environment variables have to be se
 - `PORT`: Port through which the GraphQL server will be accessible.
 - `NODE_ENV`: Node environment that the server is booting up on.
 - `DATABASE_URL`: Database URL that the server will use to store data.
-- `ETH_WSS_URI`: Public filecoin node WS access point.
 - `ETH_HTTP_URI`: Public filecoin node HTTP access point.
 - `REC_MARKETPLACE_ADDRESS`: Address where the RECMarketplace contract is deployed.
 - `DEPLOYMENT_BLOCK_HEIGHT`: Block when the RECMarketplace contract was deployed. Used once at the first start of the server,
 to ensure we do not miss any role related event to seed in the database.
+- `WEB3_STORAGE_KEY`: API Key to access a valid [web3.storage](https://web3.storage/) account
+- `EWF_HTTP_URI`: Public Energy Web Chain endpoint to bridge data
+- `REGISTRY_EXTENDED_ADDRESS`: [Certificate](https://docs.zerolabs.green/zerolabs-tokenization-module/domain-definitions/certificate) registry on EWC
+- `BATCH_FACTORY_ADDRESS`: [Batch](https://docs.zerolabs.green/zerolabs-tokenization-module/domain-definitions/batch) factory on EWC
+- `AGREEMENT_FACTORY_ADDRESS`: [Agreement](https://docs.zerolabs.green/zerolabs-tokenization-module/domain-definitions/agreement) factory on EWC
+- `BRIDGE_PRIVATE_KEY`: Private key used to bridge data from EWC to Filecoin.
+- `github_personal_access_token`: Access token from a Github account to retrieve data from [filecoin renewable energy purchases](https://github.com/protocol/filecoin-renewables-purchases) 
+
+> 	⚠️ `github_personal_access_token` needs to be setup in the `docker-compose.yml` for it to work
 
 ## Energy Web Chain
 

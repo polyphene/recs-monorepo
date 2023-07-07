@@ -27,7 +27,7 @@ services:
     environment:
       - PORT=4000
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/recs?schema=recs&connect_timeout=3000
+      - DATABASE_URL=postgresql://recs-db:AVNS_0ur5CcpIbgZYla4S-jf@app-c6ba2a0d-d21f-46dd-815c-31ea374347b7-do-user-7834228-0.b.db.ondigitalocean.com:25061/recs-pool?sslmode=require&connect_timeout=10&pool_timeout=30&pgbouncer=true
       - ETH_WSS_URI=wss://wss.calibration.node.glif.io/apigw/lotus/rpc/v1
       - ETH_HTTP_URI=https://api.calibration.node.glif.io/rpc/v1
       - WEB3_STORAGE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDY1NUM2MzU5MWVGOTAwMjUzNDg1N0Q2NDdkRERCOGIyNEUzZkMwRTAiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2NzY5ODYwNzU5NTMsIm5hbWUiOiJyZWNzLWRldiJ9.LmRzqwqJ9CILIKTteurqJjUtLeE4NQmokCgHvx9Xgsg
@@ -43,7 +43,7 @@ services:
       # Bridge private key
       - BRIDGE_PRIVATE_KEY=0x570a1f99caf2860cbbb34599473786fdb4450b179063be745f9b13cee0c82241
       # Github access token
-      - github_personal_access_token=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
+      - github_personal_access_token=
     ports:
       # GraphQL GUI
       - "4000:4000"
