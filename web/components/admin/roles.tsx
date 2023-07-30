@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { useContractWrite, usePrepareContractWrite } from 'wagmi';
 
 import recMarketplace from '@/config/rec-marketplace';
-import { ROLES } from '@/lib/graphql';
+import { USERS } from '@/lib/graphql';
 import { ADMIN_ROLE, MINTER_ROLE, REDEEMER_ROLE, waitTx } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -133,7 +133,7 @@ function RoleRow({ address, isRedeemer, isMinter, isAdmin }) {
 
 export function RolesTable({ isRedeemer }) {
   const [isPolling, setIsPolling] = useState(false);
-  const { loading, error, data, startPolling } = useQuery(ROLES, {
+  const { loading, error, data, startPolling } = useQuery(USERS, {
     fetchPolicy: 'cache-and-network',
   });
 
@@ -166,14 +166,14 @@ export function RolesTable({ isRedeemer }) {
         </tr>
       </thead>
       <tbody>
-        {data.roles.map((e) => {
+        {data.users.map((u) => {
           return (
             <RoleRow
-              key={e.address}
-              address={e.address}
-              isRedeemer={e.isRedeemer}
-              isMinter={e.isMinter}
-              isAdmin={e.isAdmin}
+              key={u.address}
+              address={u.address}
+              isRedeemer={u.isRedeemer}
+              isMinter={u.isMinter}
+              isAdmin={u.isAdmin}
             />
           );
         })}

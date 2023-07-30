@@ -38,10 +38,38 @@ export const METADATA_BY_CID = gql`
   }
 `;
 
-export const ROLES = gql`
-  query Roles {
-    roles {
+export const USERS = gql`
+  query Users {
+    users {
       address
+      isMinter
+      isAdmin
+      isRedeemer
+    }
+  }
+`;
+
+export const FILTERED_USERS = gql`
+  query FilteredUsers($where: FilterUserInput!) {
+    filteredUsers(where: $where) {
+      address
+      balances {
+        amount
+        redeemed
+        collection {
+          filecoinTokenId
+          redeemedVolume
+          metadata {
+            cid
+            region
+            country
+            volume
+            reportingStart
+            reportingEnd
+          }
+          redemptionStatement
+        }
+      }
       isMinter
       isAdmin
       isRedeemer
@@ -104,6 +132,18 @@ export const FILTERED_COLLECTIONS = gql`
   query FilteredEvents($where: FilterCollectionInput!) {
     filteredCollections(where: $where) {
       id
+      filecoinTokenId
+      balances {
+        id
+        user {
+          address
+        }
+        amount
+      }
+      metadata {
+        volume
+      }
+      redeemedVolume
       events {
         blockHeight
         createdAt
@@ -164,6 +204,28 @@ export const FILTERED_COLLECTIONS = gql`
           }
         }
       }
+      redemptionStatement
+    }
+  }
+`;
+
+export const FILTERED_LISTINGS = gql`
+  query FilteredListings($where: FilterListingInput!) {
+    filteredListings(where: $where) {
+      collection {
+        filecoinTokenId
+        metadata {
+          cid
+          country
+          region
+          reportingStart
+          reportingEnd
+        }
+      }
+      sellerAddress
+      buyerAddress
+      amount
+      unitPrice
     }
   }
 `;

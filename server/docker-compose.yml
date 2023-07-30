@@ -27,14 +27,14 @@ services:
     environment:
       - PORT=4000
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://recs-db:AVNS_0ur5CcpIbgZYla4S-jf@app-c6ba2a0d-d21f-46dd-815c-31ea374347b7-do-user-7834228-0.b.db.ondigitalocean.com:25061/recs-pool?sslmode=require&connect_timeout=10&pool_timeout=30&pgbouncer=true
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/recs?schema=recs&connect_timeout=3000
       - ETH_WSS_URI=wss://wss.calibration.node.glif.io/apigw/lotus/rpc/v1
       - ETH_HTTP_URI=https://api.calibration.node.glif.io/rpc/v1
       - WEB3_STORAGE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDY1NUM2MzU5MWVGOTAwMjUzNDg1N0Q2NDdkRERCOGIyNEUzZkMwRTAiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2NzY5ODYwNzU5NTMsIm5hbWUiOiJyZWNzLWRldiJ9.LmRzqwqJ9CILIKTteurqJjUtLeE4NQmokCgHvx9Xgsg
       # It is recommended to deploy a new rec marketplace contract for your developer environment.
       # See https://github.com/polyphene/recs-contract
-      - REC_MARKETPLACE_ADDRESS=0xbA344aB01c68a236DF0172f9EE70326DCfB8eE29
-      - DEPLOYMENT_BLOCK_HEIGHT=710930 # Need to set block height < of deployment height
+      - REC_MARKETPLACE_ADDRESS=0xBE4231d0d5a7DD811c0A4658156C20D8565A1D0b
+      - DEPLOYMENT_BLOCK_HEIGHT=780741 # Need to set block height < of deployment height
       # Energy Web foundation related env
       - EWF_HTTP_URI=https://rpc.energyweb.org
       - REGISTRY_EXTENDED_ADDRESS=0x5651a7A38753A9692B7740CCeCA3824a4d33aEFb

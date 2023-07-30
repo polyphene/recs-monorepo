@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
-import { useAccount, useContractReads } from 'wagmi';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@apollo/client';
+import { useAccount } from 'wagmi';
 
-import recMarketplace from '@/config/rec-marketplace';
-import { MINTER_ROLE, REDEEMER_ROLE } from '@/lib/utils';
+import { FILTERED_USERS } from '@/lib/graphql';
 import { MintedRecsTable } from '@/components/dashboard/minted-recs';
 import { MyRecsTable } from '@/components/dashboard/my-recs';
 import { PendingRecsTable } from '@/components/dashboard/pending-recs';
@@ -12,29 +12,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function Dashboard() {
   const { address } = useAccount();
+  const [isPolling, setIsPolling] = useState(false);
 
-  const {
-    data: isRoleData,
-    isLoading: isRoleDataLoading,
-    isError: isRoleDataError,
-  } = useContractReads({
-    contracts: [
-      // @ts-ignore
-      {
-        ...recMarketplace,
-        functionName: 'hasRole',
-        args: [MINTER_ROLE, address],
-      },
-      // @ts-ignore
-      {
-        ...recMarketplace,
-        functionName: 'hasRole',
-        args: [REDEEMER_ROLE, address],
-      },
-    ],
+  const { loading, error, data, startPolling } = useQuery(FILTERED_USERS, {
+    variables: { where: { address } },
+    fetchPolicy: 'cache-and-network',
   });
 
-  if (!isRoleData || isRoleDataLoading || isRoleDataError) return <></>;
+  useEffect(() => {
+    if (!isPolling && startPolling) {
+      startPolling(5000);
+      setIsPolling(true);
+    }
+  }, [startPolling, isPolling]);
+
+  if (loading || error || !data) return <></>;
 
   return (
     <section className="container grid items-center gap-6 pt-6 pb-8 md:py-10">
@@ -44,7 +36,10 @@ export function Dashboard() {
             <TabsTrigger value="owner" className="relative">
               Owner
             </TabsTrigger>
-            <TabsTrigger value="minter" disabled={!isRoleData?.[0]}>
+            <TabsTrigger
+              value="minter"
+              disabled={!data?.filteredUsers[0].isMinter}
+            >
               Minter
             </TabsTrigger>
           </TabsList>
@@ -60,7 +55,10 @@ export function Dashboard() {
               </div>
             </div>
             <Separator className="my-4" />
-            <MyRecsTable isRedeemer={isRoleData?.[1]} />
+            <MyRecsTable
+              isRedeemer={data?.filteredUsers[0].isRedeemer}
+              balances={data?.filteredUsers[0].balances}
+            />
           </TabsContent>
           <TabsContent value="minter" className="border-none p-0 pt-2">
             <div className="flex items-center justify-between">

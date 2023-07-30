@@ -59,11 +59,10 @@ function PendingRecsRow({
 export function PendingRecsTable() {
   const { address } = useAccount();
   const [isPolling, setIsPolling] = useState(false);
-  const { loading, error, data, previousData, startPolling, stopPolling } =
-    useQuery(FILTERED_METADATA, {
-      variables: { where: { broker: address, minted: false } },
-      fetchPolicy: 'cache-and-network',
-    });
+  const { loading, error, data, startPolling } = useQuery(FILTERED_METADATA, {
+    variables: { where: { broker: address, minted: false } },
+    fetchPolicy: 'cache-and-network',
+  });
 
   useEffect(() => {
     if (!isPolling && startPolling) {
@@ -73,7 +72,7 @@ export function PendingRecsTable() {
   }, [startPolling, isPolling]);
 
   if (loading) return <p className="leading-7">Loading...</p>;
-
+  console.log(isPolling);
   if (error)
     return (
       <p className="leading-7">

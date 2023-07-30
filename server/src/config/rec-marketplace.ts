@@ -60,6 +60,31 @@ export default {
             inputs: [
                 {
                     indexed: true,
+                    internalType: 'address',
+                    name: 'minter',
+                    type: 'address',
+                },
+                {
+                    indexed: true,
+                    internalType: 'uint256',
+                    name: 'tokenId',
+                    type: 'uint256',
+                },
+                {
+                    indexed: true,
+                    internalType: 'string',
+                    name: 'cid',
+                    type: 'string',
+                },
+            ],
+            name: 'RedemptionStatementSet',
+            type: 'event',
+        },
+        {
+            anonymous: false,
+            inputs: [
+                {
+                    indexed: true,
                     internalType: 'bytes32',
                     name: 'role',
                     type: 'bytes32',

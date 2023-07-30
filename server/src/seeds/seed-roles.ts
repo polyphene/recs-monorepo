@@ -120,7 +120,7 @@ const seedRoles = async (prisma: PrismaClient, fromBlock: number) => {
     // For each AddressRole run upsert
     await Promise.all(
         Object.values(accountRoles).map(a =>
-            prisma.addressRoles
+            prisma.user
                 .upsert({
                     where: {
                         address: a.address,

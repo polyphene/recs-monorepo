@@ -23,6 +23,30 @@ export const handleList = async (
         throw new Error(`no collection object in database for filecoin token Id: ${tokenId.toString()}`);
     }
 
+    await prisma.listing
+        .create({
+            data: {
+                seller: {
+                    connect: {
+                        address: seller,
+                    },
+                },
+                buyer: undefined,
+                amount: tokenAmount.toString(),
+                unitPrice: price.toString(),
+                collection: {
+                    connect: {
+                        id: collection.id,
+                    },
+                },
+            },
+        })
+        .catch(() =>
+            console.error(
+                `could not create listing document for listing with filecoin token Id - seller: ${tokenId.toString()} - ${seller}`,
+            ),
+        );
+
     const listedData = {
         tokenId: tokenId.toString(),
         eventType: EventType.LIST,
@@ -75,6 +99,28 @@ export const handleBuy = async (
     if (!collection) {
         throw new Error(`no collection object in database for filecoin token Id: ${tokenId.toString()}`);
     }
+
+    await prisma.listing
+        .update({
+            where: {
+                sellerAddress_collectionId: {
+                    sellerAddress: seller,
+                    collectionId: collection.id,
+                },
+            },
+            data: {
+                buyer: {
+                    connect: {
+                        address: buyer,
+                    },
+                },
+            },
+        })
+        .catch(() =>
+            console.error(
+                `could not update listing document for listing with filecoin token Id - seller - buyer: ${tokenId.toString()} - ${seller} - ${buyer}`,
+            ),
+        );
 
     const boughtData = {
         tokenId: tokenId.toString(),

@@ -8,14 +8,17 @@ datasource db {
 }
 
 model Collection {
-  id                Int      @id @default(autoincrement())
+  id                  Int       @id @default(autoincrement())
   // Store as string because uint256
-  filecoinTokenId   String?  @unique
-  energyWebTokenIds String[]
-  events            Event[]
-  metadata          Metadata @relation(fields: [metadataId], references: [id])
-  metadataId        Int      @unique
-  createdAt         DateTime @default(now())
+  filecoinTokenId     String?   @unique
+  energyWebTokenIds   String[]
+  events              Event[]
+  balances            Balance[]
+  Listing             Listing[]
+  metadata            Metadata  @relation(fields: [metadataId], references: [id])
+  metadataId          Int       @unique
+  redemptionStatement String?
+  createdAt           DateTime  @default(now())
 }
 
 model Metadata {
@@ -65,15 +68,45 @@ enum EventType {
   GRANT_ROLE
   REVOKE_ROLE
   MINT
+  REDEMPTION_STATEMENT_SET
 }
 
-model AddressRoles {
-  id         Int      @id @default(autoincrement())
-  address    String   @unique
-  isAdmin    Boolean  @default(false)
-  isMinter   Boolean  @default(false)
-  isRedeemer Boolean  @default(false)
-  createdAt  DateTime @default(now())
+model User {
+  id         Int       @id @default(autoincrement())
+  balances   Balance[]
+  address    String    @unique
+  isAdmin    Boolean   @default(false)
+  isMinter   Boolean   @default(false)
+  isRedeemer Boolean   @default(false)
+  listings   Listing[] @relation("Seller")
+  purchases  Listing[] @relation("Buyer")
+  createdAt  DateTime  @default(now())
+}
+
+model Balance {
+  id           Int         @id @default(autoincrement())
+  user         User        @relation(fields: [userAddress], references: [address])
+  userAddress  String
+  collectionId Int
+  collection   Collection? @relation(fields: [collectionId], references: [id])
+  amount       String
+  redeemed     String      @default("0")
+
+  @@unique([userAddress, collectionId])
+}
+
+model Listing {
+  id            Int        @id @default(autoincrement())
+  seller        User       @relation("Seller", fields: [sellerAddress], references: [address])
+  sellerAddress String
+  collectionId  Int
+  collection    Collection @relation(fields: [collectionId], references: [id])
+  amount        String
+  buyer         User?      @relation("Buyer", fields: [buyerAddress], references: [address])
+  buyerAddress  String?
+  unitPrice     String
+
+  @@unique([sellerAddress, collectionId])
 }
 
 model Transaction {

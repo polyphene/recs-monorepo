@@ -1,4 +1,4 @@
-import { getCurrentBlockHeight, getRecMarketplaceContractInstance, getRoleJsonKey } from '../utils/web3-utils';
+import { getRoleJsonKey } from '../utils/web3-utils';
 import { EventType, PrismaClient } from '@prisma/client';
 
 export const handleGrantRole = async (
@@ -10,7 +10,7 @@ export const handleGrantRole = async (
     account: string,
     sender: string,
 ) => {
-    await prisma.addressRoles
+    await prisma.user
         .upsert({
             where: {
                 address: account,
@@ -65,7 +65,7 @@ export const handleRevokeRole = async (
     account: string,
     sender: string,
 ) => {
-    await prisma.addressRoles
+    await prisma.user
         .upsert({
             where: {
                 address: account,

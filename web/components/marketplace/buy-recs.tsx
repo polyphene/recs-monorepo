@@ -1,125 +1,68 @@
+import { useEffect, useState } from 'react';
 import { useQuery } from '@apollo/client';
 import { BigNumber } from 'ethers';
 import { useAccount, useContractRead, useContractReads } from 'wagmi';
 
 import recMarketplace from '@/config/rec-marketplace';
-import { METADATA_BY_CID } from '@/lib/graphql';
+import {
+  FILTERED_LISTINGS,
+  FILTERED_USERS,
+  METADATA_BY_CID,
+} from '@/lib/graphql';
 import { BuyRecs } from '@/components/buy-recs-dialog';
 
-type TokenListing = {
-  tokenId: number;
-  seller: string;
-  tokenAmount: BigNumber;
-  price: BigNumber;
-};
-
-function BuyRecsRow({ listing }: { listing: TokenListing }) {
-  const { address } = useAccount();
-
-  // @ts-ignore
-  const {
-    data: onChainData,
-    isError: onChainDataError,
-    isLoading: onchainDataLoading,
-  }: {
-    data:
-      | [
-          BigNumber,
-          BigNumber,
-          BigNumber,
-          string,
-          Array<{ tokenAmount: BigNumber }>
-        ]
-      | null;
-    isError: boolean;
-    isLoading;
-    boolean;
-  } = useContractReads({
-    contracts: [
-      // @ts-ignore
-      {
-        ...recMarketplace,
-        functionName: 'balanceOf',
-        args: [listing.seller, listing.tokenId],
-      },
-      // @ts-ignore
-      {
-        ...recMarketplace,
-        functionName: 'uri',
-        args: [listing.tokenId],
-      },
-      // @ts-ignore
-      {
-        ...recMarketplace,
-        functionName: 'tokenSupplyListed',
-        args: [listing.tokenId],
-      },
-    ],
-    watch: true,
-  });
-
-  const {
-    data,
-    loading: metadataLoading,
-    error: metadataError,
-  } = useQuery(METADATA_BY_CID, {
-    variables: { cid: onChainData?.[1] ?? '' },
-  });
-
-  if (
-    onChainDataError ||
-    onchainDataLoading ||
-    onChainData?.[0].toString() === '0' ||
-    metadataLoading ||
-    metadataError ||
-    !data?.metadataByCid
-  )
-    return <></>;
-
+function BuyRecsRow({
+  listing: {
+    collection: {
+      filecoinTokenId,
+      metadata: { cid, country, region, reportingStart, reportingEnd },
+    },
+    sellerAddress,
+    amount,
+    unitPrice,
+  },
+}) {
   return (
     <tr className="m-0 border-t border-slate-200 p-0 even:bg-slate-100 dark:border-slate-700 dark:even:bg-slate-800">
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        {listing.tokenId.toString()}
+        {filecoinTokenId}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        {data.metadataByCid.country}
+        {country}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        {data.metadataByCid.region}
+        {region}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        {data.metadataByCid.reportingStart}
+        {reportingStart}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        {data.metadataByCid.reportingEnd}
+        {reportingEnd}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        {listing.seller}
+        {sellerAddress}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
         <a
           className="underline hover:no-underline"
-          href={`https://bafybeiepdrogejw7eji6qdbq3hpd3ewuuhecyvf4nyofvhntsbyb3w7tqa.on.fleek.co/#/explore/${onChainData?.[1].toString()}`}
+          href={`https://bafybeiepdrogejw7eji6qdbq3hpd3ewuuhecyvf4nyofvhntsbyb3w7tqa.on.fleek.co/#/explore/${cid.toString()}`}
           target="_blank"
           rel="noreferrer"
         >
-          {onChainData?.[1].toString().substring(0, 14)}...
-          {onChainData?.[1]
+          {cid.toString().substring(0, 14)}...
+          {cid
             .toString()
-            .substring(
-              onChainData?.[1].toString().length - 14,
-              onChainData?.[1].toString().length
-            )}
+            .substring(cid.toString().length - 14, cid.toString().length)}
         </a>
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
-        {onChainData[2].toString() ?? '0'}
+        {amount}
       </td>
       <td className="border border-slate-200 px-4 py-2 text-left dark:border-slate-700 [&[align=center]]:text-center [&[align=right]]:text-right">
         <BuyRecs
-          id={listing.tokenId.toString()}
-          seller={listing.seller}
-          price={listing.price}
+          id={filecoinTokenId}
+          seller={sellerAddress}
+          price={unitPrice}
         />
       </td>
     </tr>
@@ -127,26 +70,23 @@ function BuyRecsRow({ listing }: { listing: TokenListing }) {
 }
 
 export function BuyRecsTable() {
-  const {
-    data,
-    isLoading,
-    isError,
-  }: {
-    data: Array<TokenListing>;
-    isLoading: boolean;
-    isError: boolean;
-  } = useContractRead(
-    // @ts-ignore
-    {
-      ...recMarketplace,
-      functionName: 'currentTokenListings',
-      watch: true,
-    }
-  );
+  const [isPolling, setIsPolling] = useState(false);
 
-  if (isLoading) return <p>Loading...</p>;
-  if (isError) return <p>Couldn&apos;t fetch next REC id</p>;
-  if (data.length === 0) return <p>No RECs in sale</p>;
+  const { loading, error, data, startPolling } = useQuery(FILTERED_LISTINGS, {
+    variables: { where: { isSold: false } },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  useEffect(() => {
+    if (!isPolling && startPolling) {
+      startPolling(5000);
+      setIsPolling(true);
+    }
+  }, [startPolling, isPolling]);
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Couldn&apos;t fetch next REC id</p>;
+  if (data.filteredListings.length === 0) return <p>No RECs in sale</p>;
 
   return (
     <table className="w-full">
@@ -182,11 +122,11 @@ export function BuyRecsTable() {
         </tr>
       </thead>
       <tbody>
-        {data.map((e) => {
+        {data.filteredListings.map((l) => {
           return (
             <BuyRecsRow
-              listing={e}
-              key={`${e.seller}${e.tokenId.toString()}`}
+              listing={l}
+              key={`${l.sellerAddress}${l.collection.filecoinTokenId}`}
             />
           );
         })}

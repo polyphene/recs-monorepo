@@ -1,4 +1,4 @@
-import { BigNumber, Contract } from 'ethers';
+import { BigNumber, Contract, constants } from 'ethers';
 import { getCurrentBlockHeight, getRecMarketplaceContractInstance } from '../utils/web3-utils';
 import { EventType, PrismaClient } from '@prisma/client';
 import { sleep } from '../utils/sleep';
@@ -47,6 +47,26 @@ export const handleMint = async (
         console.error(`could not fetch data for transaction ${transactionHash} in block: ${blockHeight}`);
     });
 
+    // Upsert a user document
+    const user = await prisma.user
+        .upsert({
+            where: {
+                address: to,
+            },
+            create: {
+                address: to,
+                isMinter: true,
+            },
+            update: {},
+        })
+        .catch(() => {
+            console.error(`could not upsert user on mint for address: ${to}`);
+        });
+
+    if (!user) {
+        console.error(`could not find user on mint for address: ${to}`);
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-call
     const uri: string = await recMarketplace.uri(id);
 
@@ -90,6 +110,23 @@ export const handleMint = async (
         throw new Error(`no collection object in database for metadata Id: ${metadata.id}`);
     }
 
+    // Upsert user balance
+    await prisma.balance.create({
+        data: {
+            amount: value.toString(),
+            user: {
+                connect: {
+                    id: user?.id,
+                },
+            },
+            collection: {
+                connect: {
+                    id: collection.id,
+                },
+            },
+        },
+    });
+
     const mintData = {
         tokenId: id.toString(),
         eventType: EventType.MINT,
@@ -105,6 +142,7 @@ export const handleMint = async (
         logIndex: logIndex,
         collectionId: collection.id,
     };
+
     // Upsert ensures that we are only having one event record per event
     await prisma.event
         .upsert({
@@ -145,6 +183,109 @@ export const handleTransfer = async (
         throw new Error(`no collection object in database for filecoin token Id: ${id.toString()}`);
     }
 
+    // If not a mint transfer update sender balance
+    if (from != constants.AddressZero) {
+        const balance = await prisma.balance
+            .findUnique({
+                where: {
+                    userAddress_collectionId: {
+                        userAddress: from,
+                        collectionId: collection.id,
+                    },
+                },
+            })
+            .catch(() =>
+                console.error(
+                    `could not look for balance of pair user.address/collection.id: ${from}/${collection.id}`,
+                ),
+            );
+
+        if (!balance) {
+            console.error(`could not find balance for user.address/collection.id: ${from}/${collection.id}`);
+        }
+
+        const updatedAmount = BigNumber.from(balance?.amount).sub(value);
+        await prisma.balance
+            .update({
+                where: {
+                    id: balance?.id,
+                },
+                data: {
+                    amount: updatedAmount.toString(),
+                },
+            })
+            .catch(() =>
+                console.error(
+                    `could not update balance with new amount of pair user.address/collection.id: ${from}/${
+                        collection.id
+                    } - ${updatedAmount.toString()}`,
+                ),
+            );
+    }
+
+    // If not a burn transfer update receiver balance
+    if (to != constants.AddressZero) {
+        const balance = await prisma.balance
+            .findUnique({
+                where: {
+                    userAddress_collectionId: {
+                        userAddress: to,
+                        collectionId: collection.id,
+                    },
+                },
+            })
+            .catch(() =>
+                console.error(`could not look for balance of pair user.address/collection.id: ${to}/${collection.id}`),
+            );
+
+        if (!balance) {
+            console.error(`could not find balance for user.address/collection.id: ${to}/${collection.id}`);
+        }
+
+        // No balance for address yet
+        if (balance === null) {
+            await prisma.balance.create({
+                data: {
+                    user: {
+                        connectOrCreate: {
+                            where: {
+                                address: to,
+                            },
+                            create: {
+                                address: to,
+                            },
+                        },
+                    },
+                    amount: value.toString(),
+                    collection: {
+                        connect: {
+                            id: collection.id,
+                        },
+                    },
+                },
+            });
+        } else {
+            // Balance exists
+            const updatedAmount = BigNumber.from(balance?.amount).add(value);
+            await prisma.balance
+                .update({
+                    where: {
+                        id: balance?.id,
+                    },
+                    data: {
+                        amount: updatedAmount.toString(),
+                    },
+                })
+                .catch(() =>
+                    console.error(
+                        `could not update balance with new amount of pair user.address/collection.id: ${to}/${
+                            collection.id
+                        } - ${updatedAmount.toString()}`,
+                    ),
+                );
+        }
+    }
+
     const transferData = {
         tokenId: id.toString(),
         eventType: EventType.TRANSFER,
@@ -160,6 +301,7 @@ export const handleTransfer = async (
         logIndex: logIndex,
         collectionId: collection.id,
     };
+
     await prisma.event
         .upsert({
             where: {
@@ -197,6 +339,42 @@ export const handleRedeem = async (
         throw new Error(`no collection object in database for filecoin token Id: ${tokenId.toString()}`);
     }
 
+    const balance = await prisma.balance
+        .findUnique({
+            where: {
+                userAddress_collectionId: {
+                    userAddress: owner,
+                    collectionId: collection.id,
+                },
+            },
+        })
+        .catch(() =>
+            console.error(`could not look for balance of pair user.address/collection.id: ${owner}/${collection.id}`),
+        );
+
+    if (balance) {
+        const updatedRedeem = BigNumber.from(balance.redeemed).add(amount);
+        await prisma.balance
+            .update({
+                where: {
+                    userAddress_collectionId: {
+                        userAddress: owner,
+                        collectionId: collection.id,
+                    },
+                },
+                data: {
+                    redeemed: updatedRedeem.toString(),
+                },
+            })
+            .catch(() =>
+                console.error(
+                    `could not update redeem amount of pair user.address/collection.id: ${owner}/${collection.id}`,
+                ),
+            );
+    } else {
+        console.error(`could not find balance for user.address/collection.id: ${owner}/${collection.id}`);
+    }
+
     const redeemData = {
         tokenId: tokenId.toString(),
         eventType: EventType.REDEEM,
@@ -221,6 +399,71 @@ export const handleRedeem = async (
             },
             update: redeemData,
             create: redeemData,
+        })
+        .catch(() => {
+            console.error(`could not create REDEEM event for token: ${tokenId.toString()}`);
+        });
+};
+
+export const handleRedemptionStatementSet = async (
+    prisma: PrismaClient,
+    blockHeight: number,
+    transactionHash: string,
+    logIndex: number,
+    minter: string,
+    tokenId: BigNumber,
+    cid: string,
+) => {
+    const collection = await prisma.collection
+        .findUnique({
+            where: {
+                filecoinTokenId: tokenId.toString(),
+            },
+        })
+        .catch(() => console.error(`could not look for collection with filecoin token Id: ${tokenId.toString()}`));
+    if (!collection) {
+        throw new Error(`no collection object in database for filecoin token Id: ${tokenId.toString()}`);
+    }
+
+    await prisma.collection
+        .update({
+            where: {
+                id: collection.id,
+            },
+            data: {
+                redemptionStatement: cid,
+            },
+        })
+        .catch(() =>
+            console.error(
+                `could not update redemption statement for collection with filecoin token Id: ${tokenId.toString()} - ${cid}`,
+            ),
+        );
+
+    const redemptionStatementSetData = {
+        tokenId: tokenId.toString(),
+        eventType: EventType.REDEMPTION_STATEMENT_SET,
+        data: {
+            minter,
+            tokenId: tokenId.toString(),
+            cid,
+        },
+        blockHeight: blockHeight.toString(),
+        transactionHash: transactionHash,
+        logIndex: logIndex,
+        collectionId: collection.id,
+    };
+    await prisma.event
+        .upsert({
+            where: {
+                blockHeight_transactionHash_logIndex: {
+                    blockHeight: blockHeight.toString(),
+                    transactionHash: transactionHash,
+                    logIndex: logIndex,
+                },
+            },
+            update: redemptionStatementSetData,
+            create: redemptionStatementSetData,
         })
         .catch(() => {
             console.error(`could not create REDEEM event for token: ${tokenId.toString()}`);

@@ -2,12 +2,13 @@ import { getEthHttpUriEnv, getEthWssUriEnv, getRecMarketplaceAddressEnv } from '
 import recMarketplace from '../config/rec-marketplace';
 import { constants, ethers } from 'ethers';
 import { Contract, BigNumber } from 'ethers';
-import { handleMint, handleRedeem, handleTransfer } from './handle-rec';
+import { handleMint, handleRedeem, handleRedemptionStatementSet, handleTransfer } from './handle-rec';
 import { handleBuy, handleList } from './handle-marketplace';
 import { handleGrantRole, handleRevokeRole } from './handle-roles';
 import { WebSocketProvider } from '../utils/web3-socket-provider';
 import { PrismaClient } from '@prisma/client';
 import { sleep } from '../utils/sleep';
+import { getRecMarketplaceContractInstance } from '../utils/web3-utils';
 
 type TransferSingleArgs = {
     operator: string;
@@ -50,6 +51,12 @@ type RoleRevokedArgs = {
     sender: string;
 };
 
+type RedemptionStatementSetArgs = {
+    minter: string;
+    tokenId: BigNumber;
+    cid: string;
+};
+
 export const searchNewBlock = async (prisma: PrismaClient) => {
     const recMarketplaceAddress = getRecMarketplaceAddressEnv();
     const provider = ethers.getDefaultProvider(getEthHttpUriEnv());
@@ -73,6 +80,8 @@ export const searchNewBlock = async (prisma: PrismaClient) => {
     provider
         .getBlockWithTransactions(parseInt(utils.filecoinBlockHeight, 10))
         .then(async block => {
+            console.info(`found block ${utils.filecoinBlockHeight}`);
+
             const contract = new Contract(recMarketplaceAddress, recMarketplace.abi, provider);
 
             // Loop through all transactions in the block
@@ -156,6 +165,36 @@ export const searchNewBlock = async (prisma: PrismaClient) => {
                                 ).catch((err: Error) =>
                                     console.warn(
                                         `could not handle redeem event for tokenId ${tokenId.toString()}: ${
+                                            err.message
+                                        }`,
+                                    ),
+                                );
+                            }
+                            break;
+
+                        case 'RedemptionStatementSet':
+                            {
+                                const minter = parsedLog.args[0] as unknown as string;
+                                const tokenId = parsedLog.args[1] as unknown as BigNumber;
+                                // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-assignment
+                                const redemptionStatementCid: string =
+                                    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+                                    await getRecMarketplaceContractInstance().redemptionStatementOf(tokenId);
+                                console.info(
+                                    `[FILECOIN] Received 'RedemptionStatementSet' event: [minter=${minter}, tokenId=${tokenId.toString()}, cid=${redemptionStatementCid}]`,
+                                );
+
+                                await handleRedemptionStatementSet(
+                                    prisma,
+                                    block.number,
+                                    transaction.hash,
+                                    log.logIndex,
+                                    minter,
+                                    tokenId,
+                                    redemptionStatementCid,
+                                ).catch((err: Error) =>
+                                    console.warn(
+                                        `could not handle redemption statement set event for tokenId ${tokenId.toString()}: ${
                                             err.message
                                         }`,
                                     ),

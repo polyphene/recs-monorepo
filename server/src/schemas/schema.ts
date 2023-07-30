@@ -1,10 +1,11 @@
 import { DateTimeResolver, DateTimeTypeDefinition } from 'graphql-scalars';
 import { makeExecutableSchema } from '@graphql-tools/schema';
-import type { AddressRoles, Metadata, Event, Prisma, Collection } from '@prisma/client';
+import type { User, Metadata, Event, Prisma, Collection, Balance, Listing } from '@prisma/client';
 import { GraphQLContext } from '../context';
 import { CID } from 'multiformats';
 import { GraphQLError } from 'graphql/error';
 import { isAddress } from 'ethers/lib/utils';
+import { BigNumber } from 'ethers';
 
 const typeDefinitions = /* GraphQL */ `
     ${DateTimeTypeDefinition}
@@ -13,10 +14,12 @@ const typeDefinitions = /* GraphQL */ `
         metadata(id: ID!): Metadata
         metadataByCid(cid: String!): Metadata
         filteredMetadata(where: FilterMetadataInput!): [Metadata!]!
-        roles: [AddressRoles!]!
+        users: [User!]!
+        filteredUsers(where: FilterUserInput!): [User!]!
         eventsByTokenId(tokenId: String!): [Event!]!
         filteredCollections(where: FilterCollectionInput!): [Collection!]!
         bridgedCollections: [Collection!]!
+        filteredListings(where: FilterListingInput!): [Listing!]!
     }
 
     type Mutation {
@@ -28,13 +31,17 @@ const typeDefinitions = /* GraphQL */ `
         filecoinTokenId: String
         energyWebTokenIds: [String!]!
         events: [Event!]!
+        balances: [Balance!]!
+        redeemedVolume: String
         metadata: Metadata
+        redemptionStatement: String
         createdAt: DateTime!
     }
 
     input FilterCollectionInput {
         filecoinTokenId: String
         energyWebTokenId: String
+        createdBy: String
     }
 
     type Event {
@@ -57,6 +64,7 @@ const typeDefinitions = /* GraphQL */ `
         | RedeemEventData
         | EwcRedemptionSetEventData
         | EwcClaimEventData
+        | RedemptionStatementSet
 
     type RoleEventData {
         role: String!
@@ -108,13 +116,50 @@ const typeDefinitions = /* GraphQL */ `
         _claimData: String!
     }
 
-    type AddressRoles {
+    type RedemptionStatementSet {
+        minter: String!
+        tokenId: String!
+        cid: String!
+    }
+
+    type User {
         id: ID!
+        balances: [Balance!]!
         address: String!
         isAdmin: Boolean!
         isMinter: Boolean!
         isRedeemer: Boolean!
         createdAt: DateTime!
+    }
+
+    input FilterUserInput {
+        address: String
+    }
+
+    type Balance {
+        id: ID!
+        user: User!
+        collection: Collection!
+        amount: String!
+        redeemed: String!
+    }
+
+    type Listing {
+        id: ID!
+        seller: User!
+        sellerAddress: String!
+        buyer: User
+        buyerAddress: String
+        collectionId: Collection!
+        collection: Collection
+        amount: String!
+        unitPrice: String!
+    }
+
+    input FilterListingInput {
+        sellerAddress: String
+        buyerAddress: String
+        isSold: Boolean
     }
 
     type Metadata {
@@ -188,56 +233,6 @@ type MetadataInput = {
     volume: string;
 };
 
-type RoleEventData = {
-    role: string;
-    sender: string;
-    account: string;
-};
-
-type TransferEventData = {
-    id: string;
-    from: string;
-    to: string;
-    value: string;
-    operator: string;
-};
-
-type ListEventData = {
-    tokenId: string;
-    seller: string;
-    tokenAmount: string;
-    price: string;
-};
-
-type BuyEventData = {
-    buyer: string;
-    price: string;
-    seller: string;
-    tokenId: string;
-    tokenAmount: string;
-};
-
-type RedeemEventData = {
-    owner: string;
-    amount: string;
-    tokenId: string;
-};
-
-type EwcRedemptionSetEventData = {
-    batchId: string;
-    redemptionStatement: string;
-    storagePointer: string;
-};
-
-type EwcClaimEventData = {
-    _claimIssuer: string;
-    _claimSubject: string;
-    _topic: string;
-    _id: string;
-    _value: string;
-    _claimData: string;
-};
-
 const resolvers = {
     DateTime: DateTimeResolver,
     Collection: {
@@ -246,6 +241,13 @@ const resolvers = {
         energyWebTokenIds: (parent: Collection) => parent.energyWebTokenIds,
         events(parent: Collection, args: Record<string, never>, context: GraphQLContext) {
             return context.prisma.event.findMany({
+                where: {
+                    collectionId: parent.id,
+                },
+            });
+        },
+        balances(parent: Collection, args: Record<string, never>, context: GraphQLContext) {
+            return context.prisma.balance.findMany({
                 where: {
                     collectionId: parent.id,
                 },
@@ -261,7 +263,23 @@ const resolvers = {
                 },
             });
         },
-        createdAt: (parent: Collection) => parent.id,
+        async redeemedVolume(parent: Collection, args: Record<string, never>, context: GraphQLContext) {
+            const balances = await context.prisma.balance.findMany({
+                where: {
+                    collectionId: parent.id,
+                },
+            });
+
+            const initialValue = BigNumber.from('0');
+            const redeemedAmount = balances.reduce(
+                (accumulator, currentValue) => accumulator.add(BigNumber.from(currentValue.redeemed)),
+                initialValue,
+            );
+
+            return redeemedAmount.toString();
+        },
+        redemptionStatement: (parent: Collection) => parent.redemptionStatement,
+        createdAt: (parent: Collection) => parent.createdAt,
     },
     Metadata: {
         id: (parent: Metadata) => parent.id,
@@ -290,7 +308,18 @@ const resolvers = {
         createdAt: (parent: Metadata) => parent.createdAt,
     },
     EventData: {
-        __resolveType(obj: { role: any; to: any; buyer: any; owner: any; _claimData: any; storagePointer: any }) {
+        __resolveType(obj: {
+            role: any;
+            to: any;
+            buyer: any;
+            owner: any;
+            _claimData: any;
+            storagePointer: any;
+            cid: any;
+        }) {
+            if (obj.cid) {
+                return 'RedemptionStatementSet';
+            }
             if (obj.storagePointer) {
                 return 'EwcRedemptionSetEventData';
             }
@@ -337,6 +366,72 @@ const resolvers = {
         transactionHash: (parent: Event) => parent.transactionHash,
         logIndex: (parent: Event) => parent.logIndex,
         createdAt: (parent: Event) => parent.createdAt,
+    },
+    User: {
+        id: (parent: User) => parent.id,
+        balances(parent: User, args: Record<string, never>, context: GraphQLContext) {
+            return context.prisma.balance.findMany({
+                where: {
+                    userAddress: parent.address,
+                },
+            });
+        },
+        address: (parent: User) => parent.address,
+        isAdmin: (parent: User) => parent.isAdmin,
+        isMinter: (parent: User) => parent.isMinter,
+        isRedeemer: (parent: User) => parent.isRedeemer,
+        createdAt: (parent: User) => parent.createdAt,
+    },
+    Balance: {
+        id: (parent: Balance) => parent.id,
+        user(parent: Balance, args: Record<string, never>, context: GraphQLContext) {
+            return context.prisma.user.findFirst({
+                where: {
+                    address: parent.userAddress,
+                },
+            });
+        },
+        collection(parent: Balance, args: Record<string, never>, context: GraphQLContext) {
+            return context.prisma.collection.findFirst({
+                where: {
+                    id: parent.collectionId,
+                },
+            });
+        },
+        amount: (parent: Balance) => parent.amount,
+        redeemed: (parent: Balance) => parent.redeemed,
+    },
+    Listing: {
+        id: (parent: Listing) => parent.id,
+        seller(parent: Listing, args: Record<string, never>, context: GraphQLContext) {
+            return context.prisma.user.findFirst({
+                where: {
+                    address: parent.sellerAddress,
+                },
+            });
+        },
+        sellerAddress: (parent: Listing) => parent.sellerAddress,
+        buyer(parent: Listing, args: Record<string, never>, context: GraphQLContext) {
+            if (!parent.buyerAddress) {
+                return null;
+            }
+            return context.prisma.user.findFirst({
+                where: {
+                    address: parent.buyerAddress,
+                },
+            });
+        },
+        buyerAddress: (parent: Listing) => parent.buyerAddress,
+        collection(parent: Listing, args: Record<string, never>, context: GraphQLContext) {
+            return context.prisma.collection.findFirst({
+                where: {
+                    id: parent.collectionId,
+                },
+            });
+        },
+        collectionId: (parent: Listing) => parent.collectionId,
+        amount: (parent: Listing) => parent.amount,
+        unitPrice: (parent: Listing) => parent.unitPrice,
     },
     Query: {
         async metadata(parent: unknown, args: { id: string }, context: GraphQLContext): Promise<Metadata | null> {
@@ -393,8 +488,8 @@ const resolvers = {
                 where: { cid: args.cid },
             });
         },
-        async roles(parent: unknown, args: unknown, context: GraphQLContext): Promise<Array<AddressRoles>> {
-            return context.prisma.addressRoles.findMany({
+        async users(parent: unknown, args: unknown, context: GraphQLContext): Promise<Array<User>> {
+            return context.prisma.user.findMany({
                 where: {},
             });
         },
@@ -407,11 +502,25 @@ const resolvers = {
                 where: { tokenId },
             });
         },
+        async filteredUsers(
+            parent: unknown,
+            { where: { address } }: { where: { address: string | null } },
+            context: GraphQLContext,
+        ): Promise<Array<User>> {
+            const findFilter: Prisma.UserFindManyArgs = {
+                include: { balances: true },
+                where: {
+                    address: address || undefined,
+                },
+            };
+
+            return context.prisma.user.findMany(findFilter);
+        },
         async filteredCollections(
             parent: unknown,
             {
-                where: { filecoinTokenId, energyWebTokenId },
-            }: { where: { filecoinTokenId: string | null; energyWebTokenId: string | null } },
+                where: { filecoinTokenId, energyWebTokenId, createdBy },
+            }: { where: { filecoinTokenId: string | null; energyWebTokenId: string | null; createdBy: string | null } },
             context: GraphQLContext,
         ): Promise<Array<Collection>> {
             const findFilter: Prisma.CollectionFindManyArgs = {
@@ -419,6 +528,9 @@ const resolvers = {
                 where: {
                     filecoinTokenId: filecoinTokenId || undefined,
                     energyWebTokenIds: energyWebTokenId ? { has: energyWebTokenId } : undefined,
+                    metadata: {
+                        createdBy: createdBy ? createdBy : undefined,
+                    },
                 },
             };
 
@@ -439,6 +551,23 @@ const resolvers = {
             };
 
             return context.prisma.collection.findMany(findFilter);
+        },
+        async filteredListings(
+            parent: unknown,
+            {
+                where: { sellerAddress, buyerAddress, isSold },
+            }: { where: { sellerAddress: string | null; buyerAddress: string | null; isSold: boolean | null } },
+            context: GraphQLContext,
+        ): Promise<Array<Listing>> {
+            const findFilter: Prisma.ListingFindManyArgs = {
+                include: { seller: true, buyer: true, collection: true },
+                where: {
+                    sellerAddress: sellerAddress || undefined,
+                    buyerAddress: isSold ? (buyerAddress ? buyerAddress : undefined) : undefined,
+                },
+            };
+
+            return context.prisma.listing.findMany(findFilter);
         },
     },
     Mutation: {
