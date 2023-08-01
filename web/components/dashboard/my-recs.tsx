@@ -59,6 +59,8 @@ function MyRecRow({ id, isRedeemer, redeemedVolume, balance, volume }) {
 }
 
 export function MyRecsTable({ isRedeemer, balances }) {
+  if (balances.length === 0) return <p>No RECs owned</p>;
+
   return (
     <table className="w-full">
       <thead>

@@ -27,7 +27,7 @@ export function Dashboard() {
   }, [startPolling, isPolling]);
 
   if (loading || error || !data) return <></>;
-
+  console.log(data?.filteredUsers);
   return (
     <section className="container grid items-center gap-6 pt-6 pb-8 md:py-10">
       <Tabs defaultValue="owner" className="h-full space-y-6">
@@ -38,7 +38,7 @@ export function Dashboard() {
             </TabsTrigger>
             <TabsTrigger
               value="minter"
-              disabled={!data?.filteredUsers[0].isMinter}
+              disabled={!data?.filteredUsers[0]?.isMinter}
             >
               Minter
             </TabsTrigger>
@@ -56,8 +56,8 @@ export function Dashboard() {
             </div>
             <Separator className="my-4" />
             <MyRecsTable
-              isRedeemer={data?.filteredUsers[0].isRedeemer}
-              balances={data?.filteredUsers[0].balances}
+              isRedeemer={data?.filteredUsers[0]?.isRedeemer}
+              balances={data?.filteredUsers[0]?.balances ?? []}
             />
           </TabsContent>
           <TabsContent value="minter" className="border-none p-0 pt-2">
