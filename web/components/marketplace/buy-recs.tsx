@@ -1,14 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@apollo/client';
-import { BigNumber } from 'ethers';
-import { useAccount, useContractRead, useContractReads } from 'wagmi';
+import { ApolloError, useQuery } from '@apollo/client';
+import { DateRange } from 'react-day-picker';
 
-import recMarketplace from '@/config/rec-marketplace';
-import {
-  FILTERED_LISTINGS,
-  FILTERED_USERS,
-  METADATA_BY_CID,
-} from '@/lib/graphql';
 import { BuyRecs } from '@/components/buy-recs-dialog';
 
 function BuyRecsRow({
@@ -69,24 +62,66 @@ function BuyRecsRow({
   );
 }
 
-export function BuyRecsTable() {
-  const [isPolling, setIsPolling] = useState(false);
-
-  const { loading, error, data, startPolling } = useQuery(FILTERED_LISTINGS, {
-    variables: { where: { isSold: false } },
-    fetchPolicy: 'cache-and-network',
-  });
-
+export function BuyRecsTable({
+  limitDateRange,
+  loading,
+  error,
+  listings,
+  country,
+}: {
+  limitDateRange: DateRange;
+  loading: boolean;
+  error: ApolloError;
+  listings: Array<{
+    collection: {
+      filecoinTokenId: string;
+      metadata: {
+        cid: string;
+        country: string;
+        region: string;
+        reportingStart: string;
+        reportingEnd: string;
+      };
+    };
+    sellerAddress: string;
+    buyerAddress: string;
+    amount: string;
+    unitPrice: string;
+  }>;
+  country: string;
+}) {
+  const [displayedListings, setdisplayedListings] = useState(listings);
+  console.log(country);
   useEffect(() => {
-    if (!isPolling && startPolling) {
-      startPolling(5000);
-      setIsPolling(true);
-    }
-  }, [startPolling, isPolling]);
+    setdisplayedListings(
+      listings
+        .filter((l) => {
+          if (!country) return true;
+          return l.collection.metadata.country === country;
+        })
+        .filter((l) => {
+          if (!limitDateRange) return true;
+          if (!limitDateRange.from || !limitDateRange.to) return true;
+
+          const listingRangeDate: DateRange = {
+            from: new Date(l.collection.metadata.reportingStart),
+            to: new Date(l.collection.metadata.reportingEnd),
+          };
+          console.log(listingRangeDate);
+          console.log(limitDateRange);
+          return (
+            listingRangeDate.from.valueOf() > limitDateRange.from.valueOf() &&
+            listingRangeDate.to.valueOf() > limitDateRange.to.valueOf()
+          );
+        })
+    );
+  }, [listings, limitDateRange, country]);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Couldn&apos;t fetch next REC id</p>;
-  if (data.filteredListings.length === 0) return <p>No RECs in sale</p>;
+  if (listings.length === 0) return <p>No RECs in sale</p>;
+  if (displayedListings.length === 0)
+    return <p>No RECs with selected criteria</p>;
 
   return (
     <table className="w-full">
@@ -122,7 +157,7 @@ export function BuyRecsTable() {
         </tr>
       </thead>
       <tbody>
-        {data.filteredListings.map((l) => {
+        {displayedListings.map((l) => {
           return (
             <BuyRecsRow
               listing={l}

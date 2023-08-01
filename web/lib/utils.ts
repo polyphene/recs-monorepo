@@ -1,5 +1,5 @@
 import { SendTransactionResult } from '@wagmi/core';
-import { ClassValue, clsx } from 'clsx';
+import { clsx, type ClassValue } from 'clsx';
 import Papa from 'papaparse';
 import { twMerge } from 'tailwind-merge';
 
