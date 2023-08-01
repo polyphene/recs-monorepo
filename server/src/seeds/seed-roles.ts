@@ -154,7 +154,7 @@ export const constructRolesTable = async (prisma: PrismaClient) => {
         throw Error('Utils table should be properly initialize before searching for a new block');
     }
 
-    await seedRoles(prisma, parseInt(utils.filecoinBlockHeight, 10) + 1).catch((err: Error) => {
+    await seedRoles(prisma, parseInt(utils.filecoinBlockHeight, 10)).catch((err: Error) => {
         console.error(`error when seeding roles from block ${utils.filecoinBlockHeight}: ${err.message}`);
     });
 };
