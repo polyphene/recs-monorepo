@@ -77,6 +77,7 @@ export function ListRecsTable() {
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Couldn&apos;t fetch next REC id</p>;
   if (
+    !data?.filteredUsers[0] ||
     data.filteredUsers[0].balances.filter((b) =>
       BigNumber.from(b.amount).gt(BigNumber.from('0'))
     ).length === '0'
@@ -117,16 +118,13 @@ export function ListRecsTable() {
         </tr>
       </thead>
       <tbody>
-        {
-          // @ts-ignore
-          data.filteredUsers[0].balances
-            .filter((b) => BigNumber.from(b.amount).gt(BigNumber.from('0')))
-            .map((b) => {
-              return (
-                <ListRecsRow balance={b} key={b.collection.filecoinTokenId} />
-              );
-            })
-        }
+        {data.filteredUsers[0].balances
+          .filter((b) => BigNumber.from(b.amount).gt(BigNumber.from('0')))
+          .map((b) => {
+            return (
+              <ListRecsRow balance={b} key={b.collection.filecoinTokenId} />
+            );
+          })}
       </tbody>
     </table>
   );
