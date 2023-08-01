@@ -140,38 +140,21 @@ const seedRoles = async (prisma: PrismaClient, fromBlock: number) => {
 };
 
 export const constructRolesTable = async (prisma: PrismaClient) => {
-    const aggregate = await prisma.event
-        .aggregate({
-            _max: {
-                id: true,
+    const utils = await prisma.utils
+        .findUnique({
+            where: {
+                id: 1,
             },
         })
-        .catch((err: Error) => console.error(`couldn't find highest id in Event table: ${err.message}`));
+        .catch(() => {
+            console.error(`could not find data utils`);
+        });
 
-    // Initialize block to start off as the one from the deployment of the smart contract
-    let fromBlock = getDeploymentBlockHeightEnv();
-
-    // If we have a valid Id of an event start of it
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (aggregate?._max.id) {
-        const latestHandledEvent = await prisma.event
-            .findUnique({
-                where: {
-                    id: aggregate._max.id,
-                },
-            })
-            .catch((err: Error) =>
-                console.error(`couldn't find event data based on id ${aggregate?._max.id || ''}: ${err.message}`),
-            );
-
-        if (!latestHandledEvent) {
-            throw new Error(`looking for an event of id ${aggregate?._max.id || ''} that does not exist`);
-        }
-
-        fromBlock = latestHandledEvent.blockHeight;
+    if (!utils) {
+        throw Error('Utils table should be properly initialize before searching for a new block');
     }
 
-    await seedRoles(prisma, parseInt(fromBlock, 10) + 1).catch((err: Error) => {
-        console.error(`error when seeding roles from block ${fromBlock}: ${err.message}`);
+    await seedRoles(prisma, parseInt(utils.filecoinBlockHeight, 10) + 1).catch((err: Error) => {
+        console.error(`error when seeding roles from block ${utils.filecoinBlockHeight}: ${err.message}`);
     });
 };
